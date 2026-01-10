@@ -1,0 +1,19 @@
+spring:
+  r2dbc:
+    url: r2dbc:postgresql://localhost:5432/tsms
+    username: tsms
+    password: tsms
+  autoconfigure:
+    exclude: [ ]
+
+  flyway:
+    enabled: true
+    url: jdbc:postgresql://localhost:5432/tsms
+    user: tsms
+    password: tsms
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

@@ -1,0 +1,87 @@
+########################
+# Build tools
+########################
+/target/
+/out/
+/build/
+
+########################
+# Maven
+########################
+!.mvn/wrapper/maven-wrapper.jar
+.mvn/wrapper/maven-wrapper.properties
+
+########################
+# IntelliJ IDEA
+########################
+.idea/
+*.iml
+*.ipr
+*.iws
+
+########################
+# VS Code (in case)
+########################
+.vscode/
+
+########################
+# OS / Editor junk
+########################
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+########################
+# Logs
+########################
+*.log
+logs/
+
+########################
+# Environment / Secrets
+########################
+.env
+.env.*
+!.env.example
+
+########################
+# Spring Boot
+########################
+spring.log
+hs_err_pid*
+
+########################
+# Docker / Containers
+########################
+docker-compose.override.yml
+compose.override.yml
+*.pid
+
+########################
+# Database
+########################
+*.db
+*.sqlite
+*.sqlite3
+
+########################
+# Test artifacts
+########################
+/coverage/
+/jacoco/
+/reports/
+
+########################
+# Node / frontend (future-proof)
+########################
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+########################
+# SDKMAN (just in case)
+########################
+.sdkmanrc
