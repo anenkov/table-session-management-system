@@ -19,6 +19,7 @@
 
     <properties>
         <java.version>25</java.version>
+        <flyway.version>11.20.1</flyway.version>
     </properties>
 
     <dependencies>
@@ -46,10 +47,24 @@
             <artifactId>r2dbc-postgresql</artifactId>
         </dependency>
 
+        <!-- Enables Flyway auto-configuration and migrations on startup -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-flyway</artifactId>
+        </dependency>
+
         <!-- Flyway migrations (startup-time) -->
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
+        </dependency>
+
+        <!-- Enables Flyway support for PostgreSQL 18+ -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
+            <version>${flyway.version}</version>
+            <scope>runtime</scope>
         </dependency>
 
         <!-- JDBC driver needed by Flyway for PostgreSQL -->

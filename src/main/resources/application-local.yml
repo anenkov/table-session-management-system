@@ -1,16 +1,22 @@
 spring:
   r2dbc:
     url: r2dbc:postgresql://localhost:5432/tsms
-    username: tsms
-    password: tsms
+    username: bar
+    password: bar
+
   autoconfigure:
     exclude: [ ]
 
   flyway:
-    enabled: true
     url: jdbc:postgresql://localhost:5432/tsms
-    user: tsms
-    password: tsms
+    user: bar
+    password: bar
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+logging:
+  level:
+    org.flywaydb: INFO
 
 management:
   endpoints:

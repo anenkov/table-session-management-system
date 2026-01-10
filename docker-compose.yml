@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: docker.io/library/postgres:18-alpine
+    container_name: bar-postgres
+    environment:
+      POSTGRES_DB: tsms
+      POSTGRES_USER: bar
+      POSTGRES_PASSWORD: bar
+    ports:
+      - "5432:5432"
+    volumes:
+      - bar_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bar -d tsms"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  bar_pg_data:
