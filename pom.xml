@@ -20,9 +20,7 @@
     <properties>
         <java.version>25</java.version>
         <flyway.version>11.20.1</flyway.version>
-        <bytebuddy.agent.version>1.18.3</bytebuddy.agent.version>
-        <!-- Make IntelliJ happy :) -->
-        <argLine />
+        <sonar.organization>anenkov</sonar.organization>
     </properties>
 
     <dependencies>
@@ -31,7 +29,6 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-webflux</artifactId>
-            <scope>test</scope>
         </dependency>
 
         <!-- Reactive security infrastructure (JWT, filters, auth) -->
@@ -112,24 +109,19 @@
             <artifactId>reactor-test</artifactId>
             <scope>test</scope>
         </dependency>
-
-        <!-- Mockito/ByteBuddy Java agent for JDK 21+ (prevents dynamic agent warnings in tests) -->
-        <dependency>
-            <groupId>net.bytebuddy</groupId>
-            <artifactId>byte-buddy-agent</artifactId>
-            <version>${bytebuddy.agent.version}</version>
-            <scope>test</scope>
-        </dependency>
-
     </dependencies>
 
 
     <build>
         <plugins>
+
+            <!-- Spring Boot build & run support -->
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
+
+            <!-- Code coverage (JaCoCo) -->
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
@@ -140,7 +132,13 @@
                         <goals>
                             <goal>prepare-agent</goal>
                         </goals>
+                        <configuration>
+                            <!-- Write JaCoCo agent args into ${argLine} -->
+                            <propertyName>argLine</propertyName>
+                            <destFile>${project.build.directory}/jacoco.exec</destFile>
+                        </configuration>
                     </execution>
+
                     <execution>
                         <id>report</id>
                         <phase>test</phase>
@@ -150,18 +148,23 @@
                     </execution>
                 </executions>
             </plugin>
-            <!-- Ensures ByteBuddy/Mockito Java agent is attached for tests (JDK 21+ compatible) -->
+
+            <!-- Unit test execution -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
-                    <argLine>
-                        -javaagent:${settings.localRepository}/net/bytebuddy/byte-buddy-agent/${bytebuddy.agent.version}/byte-buddy-agent-${bytebuddy.agent.version}.jar
-                        ${argLine}
-                    </argLine>
+                    <forkCount>1</forkCount>
+                    <reuseForks>true</reuseForks>
+
+                    <!-- Keep JaCoCo's ${argLine} and add JDK 21+ Mockito flag -->
+                    <argLine>${argLine} -XX:+EnableDynamicAgentLoading</argLine>
                 </configuration>
             </plugin>
+
         </plugins>
+
+
     </build>
 
 </project>
