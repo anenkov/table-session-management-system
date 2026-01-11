@@ -23,7 +23,7 @@ class SecuritySmokeTest {
   }
 
   @Test
-  void loginShouldBePermitAll() {
+  void loginShouldNotRequireAuthentication() {
     webTestClient.post()
         .uri("/auth/login")
         .contentType(MediaType.APPLICATION_JSON)
