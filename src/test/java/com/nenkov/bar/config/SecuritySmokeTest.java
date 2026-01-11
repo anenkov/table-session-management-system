@@ -27,9 +27,10 @@ class SecuritySmokeTest {
     webTestClient.post()
         .uri("/auth/login")
         .contentType(MediaType.APPLICATION_JSON)
-        .bodyValue("{\"username\":\"x\",\"password\":\"y\"}")
+        // invalid payload -> triggers validation -> 400, without DB access
+        .bodyValue("{\"username\":\"\",\"password\":\"\"}")
         .exchange()
-        .expectStatus().isNotFound(); // важно: НЕ 401/403
+        .expectStatus().isBadRequest();
   }
 
   @Test
