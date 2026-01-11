@@ -1,0 +1,23 @@
+app:
+  jwt:
+    issuer: "https://table-session-management-system.test"
+    ttl-seconds: 60
+    secret: "test-only-secret-do-not-use-in-prod-1234567890"
+
+spring:
+  main:
+    banner-mode: "off"
+
+  flyway:
+    enabled: false
+
+  r2dbc:
+    url: "r2dbc:postgresql://localhost/ignored"
+    username: "ignored"
+    password: "ignored"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health"

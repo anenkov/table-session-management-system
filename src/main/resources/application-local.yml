@@ -1,12 +1,13 @@
+app:
+  jwt:
+    secret: "${JWT_SECRET}"
+
 spring:
   r2dbc:
     url: r2dbc:postgresql://localhost:5432/tsms
     username: bar
     password: bar
-
-  autoconfigure:
-    exclude: [ ]
-
+  
   flyway:
     url: jdbc:postgresql://localhost:5432/tsms
     user: bar

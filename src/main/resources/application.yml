@@ -1,13 +1,13 @@
 server:
   port: 8080
+  
+app:
+  jwt:
+    issuer: "table-session-management-system"
+    ttl-seconds: 3600
 
 management:
   endpoints:
     web:
       exposure:
         include: health,info
-spring:
-  autoconfigure:
-    exclude:
-      - org.springframework.boot.autoconfigure.r2dbc.R2dbcAutoConfiguration
-      - org.springframework.boot.autoconfigure.data.r2dbc.R2dbcDataAutoConfiguration
