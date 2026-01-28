@@ -40,8 +40,8 @@ jobs:
           key: ${{ runner.os }}-sonar
           restore-keys: ${{ runner.os }}-sonar
 
-      - name: Run tests (JaCoCo)
-        run: mvn -B test
+      - name: Build + verify (Spotless + tests + JaCoCo)
+        run: mvn -B verify
 
       - name: Debug JaCoCo files
         run: |

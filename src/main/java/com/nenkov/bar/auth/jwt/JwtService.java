@@ -1,7 +1,6 @@
 package com.nenkov.bar.auth.jwt;
 
 import java.time.Instant;
-
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwsHeader;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
@@ -23,13 +22,14 @@ public class JwtService {
   public String generateAccessToken(String username, String role) {
     Instant now = Instant.now();
 
-    JwtClaimsSet claims = JwtClaimsSet.builder()
-        .issuer(props.issuer())
-        .issuedAt(now)
-        .expiresAt(now.plusSeconds(props.ttlSeconds()))
-        .subject(username)
-        .claim("role", role)
-        .build();
+    JwtClaimsSet claims =
+        JwtClaimsSet.builder()
+            .issuer(props.issuer())
+            .issuedAt(now)
+            .expiresAt(now.plusSeconds(props.ttlSeconds()))
+            .subject(username)
+            .claim("role", role)
+            .build();
 
     JwsHeader header = JwsHeader.with(MacAlgorithm.HS256).build();
 

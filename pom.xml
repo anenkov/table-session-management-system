@@ -109,6 +109,14 @@
             <artifactId>reactor-test</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <!-- Architecture tests (keep domain layer pure) -->
+        <dependency>
+            <groupId>com.tngtech.archunit</groupId>
+            <artifactId>archunit-junit5</artifactId>
+            <version>1.4.1</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
 
@@ -161,6 +169,36 @@
                     <argLine>${argLine} -XX:+EnableDynamicAgentLoading</argLine>
                 </configuration>
             </plugin>
+
+            <!--
+              Spotless: enforces deterministic Java formatting using google-java-format.
+              Fails the build on formatting drift; auto-fix via mvn spotless:apply.
+            -->
+            <plugin>
+                <groupId>com.diffplug.spotless</groupId>
+                <artifactId>spotless-maven-plugin</artifactId>
+                <version>3.2.1</version>
+                <configuration>
+                    <java>
+                        <googleJavaFormat>
+                            <version>1.33.0</version>
+                        </googleJavaFormat>
+                        <removeUnusedImports />
+                        <trimTrailingWhitespace />
+                        <endWithNewline />
+                    </java>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>spotless-check</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
 
         </plugins>
 

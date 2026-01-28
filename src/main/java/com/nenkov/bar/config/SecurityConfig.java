@@ -18,21 +18,23 @@ public class SecurityConfig {
     return http
         // Stateless API: no cookies/session state
         .csrf(ServerHttpSecurity.CsrfSpec::disable)
+        .authorizeExchange(
+            exchanges ->
+                exchanges
+                    // allow login endpoint
+                    .pathMatchers(HttpMethod.POST, "/auth/login")
+                    .permitAll()
 
-        .authorizeExchange(exchanges -> exchanges
-            // allow login endpoint
-            .pathMatchers(HttpMethod.POST, "/auth/login").permitAll()
+                    // allow liveness/readiness
+                    .pathMatchers("/actuator/health/**")
+                    .permitAll()
 
-            // allow liveness/readiness
-            .pathMatchers("/actuator/health/**").permitAll()
-
-            // everything else requires auth
-            .anyExchange().authenticated()
-        )
+                    // everything else requires auth
+                    .anyExchange()
+                    .authenticated())
 
         // Validate JWT from Authorization: Bearer <token>
         .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()))
-
         .build();
   }
 }
