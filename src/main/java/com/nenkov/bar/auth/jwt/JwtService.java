@@ -23,6 +23,7 @@ public class JwtService {
     Instant now = Instant.now();
 
     JwtClaimsSet claims =
+        // Configures JWT claims with issuer, time, subject
         JwtClaimsSet.builder()
             .issuer(props.issuer())
             .issuedAt(now)
