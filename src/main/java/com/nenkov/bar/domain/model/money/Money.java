@@ -1,4 +1,4 @@
-package com.nenkov.bar.domain.model;
+package com.nenkov.bar.domain.model.money;
 
 import com.nenkov.bar.domain.exceptions.IllegalDomainStateException;
 import java.math.BigDecimal;
