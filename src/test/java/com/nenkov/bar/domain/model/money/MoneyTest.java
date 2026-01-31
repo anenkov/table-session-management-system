@@ -1,4 +1,4 @@
-package com.nenkov.bar.domain.model;
+package com.nenkov.bar.domain.model.money;
 
 import static org.assertj.core.api.Assertions.*;
 
