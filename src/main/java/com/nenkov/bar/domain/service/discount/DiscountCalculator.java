@@ -3,19 +3,21 @@ package com.nenkov.bar.domain.service.discount;
 import com.nenkov.bar.domain.model.discount.Discount;
 import com.nenkov.bar.domain.model.discount.DiscountType;
 import com.nenkov.bar.domain.model.money.Money;
+import com.nenkov.bar.domain.model.money.MoneyPolicy;
 import com.nenkov.bar.domain.model.session.OrderItemId;
 import com.nenkov.bar.domain.model.writeoff.ItemWriteOff;
 import com.nenkov.bar.domain.model.writeoff.WriteOff;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.Objects;
 
 /**
- * Stateless domain service converting {@link Discount} intent into concrete {@link Money}
- * write-offs.
+ * Resolves discount intents (flat or percent) into concrete {@link Money} write-off amounts.
  *
- * <p>This service performs the business math (flat/percent) and enforces that the resulting
- * reduction is strictly positive and does not exceed the base amount.
+ * <p>All intermediate math uses {@link MoneyPolicy#WORK_CONTEXT}. Final rounding/normalization is
+ * performed only via {@link com.nenkov.bar.domain.model.money.Money#of(String,
+ * java.math.BigDecimal)}.
+ *
+ * <p>This service intentionally contains no VAT/tax logic and does not mutate domain state.
  */
 public final class DiscountCalculator {
 
@@ -88,6 +90,17 @@ public final class DiscountCalculator {
     return ItemWriteOff.of(itemId, quantity, reduction, discount.reason(), discount.note());
   }
 
+  /**
+   * Computes the monetary reduction for a percent-based discount.
+   *
+   * <p>Intermediate calculations use {@link MoneyPolicy#WORK_CONTEXT} to avoid premature rounding.
+   * Final rounding/normalization is applied only via {@link Money#of(String, BigDecimal)}.
+   *
+   * <p>The returned value is a positive {@link Money} amount. Validity constraints (non-zero and
+   * not exceeding {@code baseAmount}) are enforced by {@link #calculateReduction}.
+   *
+   * @throws IllegalArgumentException if {@code discount.type()} is not {@link DiscountType#PERCENT}
+   */
   private static Money percentReduction(Discount discount, Money baseAmount) {
     if (discount.type() != DiscountType.PERCENT) {
       throw new IllegalArgumentException("Expected PERCENT discount");
@@ -96,7 +109,7 @@ public final class DiscountCalculator {
     BigDecimal base = baseAmount.amount();
     BigDecimal percent = discount.percent(); // scale=2, HALF_UP
 
-    BigDecimal raw = base.multiply(percent).divide(ONE_HUNDRED, 10, RoundingMode.HALF_UP);
+    BigDecimal raw = base.multiply(percent).divide(ONE_HUNDRED, MoneyPolicy.WORK_CONTEXT);
 
     return Money.of(baseAmount.currency(), raw);
   }

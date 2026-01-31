@@ -35,7 +35,7 @@ public record SessionItemSnapshot(OrderItemId itemId, Money unitPrice, int remai
   /**
    * Returns the gross payable amount for the given quantity at this unit price.
    *
-   * @param quantity quantity of units
+   * @param quantity quantity of units (must be >= 0)
    * @return {@code unitPrice × quantity}
    */
   public Money grossAmountFor(int quantity) {
