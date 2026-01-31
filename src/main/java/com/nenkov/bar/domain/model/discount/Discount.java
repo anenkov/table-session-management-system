@@ -19,7 +19,7 @@ import java.util.Objects;
  *   <li>Type is non-null
  *   <li>Reason is non-null
  *   <li>Exactly one of percent/amount is set according to the type
- *   <li>Percent is strictly positive and at most 100, normalized to scale = 2 (HALF_UP)
+ *   <li>Percent is normalized to scale=2 (HALF_UP) and then validated to be in (0, 100]
  *   <li>Flat amount is strictly positive ({@code Money} must be &gt; 0)
  *   <li>Note is optional; if present it is trimmed, blank becomes {@code null}, and its length is
  *       limited
@@ -28,6 +28,7 @@ import java.util.Objects;
 public final class Discount {
 
   private static final int NOTE_MAX_LENGTH = 200;
+  private static final BigDecimal ONE_HUNDRED = BigDecimal.valueOf(100);
 
   private static final int PERCENT_SCALE = 2;
   private static final RoundingMode PERCENT_ROUNDING = RoundingMode.HALF_UP;
@@ -106,7 +107,11 @@ public final class Discount {
     return new Discount(DiscountType.FLAT_AMOUNT, null, amount, reason, note);
   }
 
-  /** Normalizes percent; enforces bounds and scale */
+  /**
+   * Normalizes a percent to scale=2 (HALF_UP) and validates it is within (0, 100].
+   *
+   * <p>Normalization happens before bounds checks, so values like 99.999 become 100.00.
+   */
   private static BigDecimal normalizePercent(BigDecimal percent) {
     Objects.requireNonNull(percent, "percent must not be null");
     BigDecimal normalized = percent.setScale(PERCENT_SCALE, PERCENT_ROUNDING);
@@ -114,7 +119,7 @@ public final class Discount {
     if (normalized.signum() <= 0) {
       throw new IllegalArgumentException("percent must be > 0");
     }
-    if (normalized.compareTo(BigDecimal.valueOf(100)) > 0) {
+    if (normalized.compareTo(ONE_HUNDRED) > 0) {
       throw new IllegalArgumentException("percent must be <= 100");
     }
     return normalized;
