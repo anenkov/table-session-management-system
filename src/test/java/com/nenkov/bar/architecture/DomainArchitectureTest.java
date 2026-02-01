@@ -1,4 +1,4 @@
-package com.nenkov.bar.domain;
+package com.nenkov.bar.architecture;
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
