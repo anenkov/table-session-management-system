@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import com.nenkov.bar.domain.model.money.Money;
 import com.nenkov.bar.domain.model.session.OrderItemId;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -135,8 +136,6 @@ final class ProportionalAllocatorTest {
     assertEquals(money(BGN, "0.02"), sum(result));
   }
 
-  // --- Additions (recommended) ---
-
   @Test
   void allocate_nonZeroTotal_withEmptyCaps_rejected() {
     Map<OrderItemId, Money> caps = new LinkedHashMap<>();
@@ -216,6 +215,69 @@ final class ProportionalAllocatorTest {
 
     Money total = money(BGN, "1.00");
     assertThrows(IllegalArgumentException.class, () -> allocator.allocate(BGN, total, caps));
+  }
+
+  @Test
+  void allocate_zeroCapItems_neverReceiveAllocation() {
+    Map<OrderItemId, Money> caps = new LinkedHashMap<>();
+    caps.put(A, money(BGN, "0.00"));
+    caps.put(B, money(BGN, "2.00"));
+    caps.put(C, money(BGN, "1.00"));
+
+    // Total is exactly split between B and C
+    Map<OrderItemId, Money> result = allocator.allocate(BGN, money(BGN, "3.00"), caps);
+
+    assertEquals(money(BGN, "0.00"), result.get(A));
+    assertEquals(money(BGN, "2.00"), result.get(B));
+    assertEquals(money(BGN, "1.00"), result.get(C));
+
+    // Sanity: total preserved
+    Money totalAllocated = money(BGN, "0.00");
+    for (Money m : result.values()) {
+      totalAllocated = totalAllocated.plus(m);
+    }
+    assertEquals(money(BGN, "3.00"), totalAllocated);
+  }
+
+  @Test
+  void allocationDraft_nullGuards() {
+    List<ProportionalAllocator.Share> shares = List.of();
+    Map<OrderItemId, Money> rounded = Map.of();
+    BigDecimal remainderAmount = BigDecimal.ZERO;
+
+    assertThrows(
+        NullPointerException.class,
+        () -> new ProportionalAllocator.AllocationDraft(null, rounded, remainderAmount));
+
+    assertThrows(
+        NullPointerException.class,
+        () -> new ProportionalAllocator.AllocationDraft(shares, null, remainderAmount));
+
+    assertThrows(
+        NullPointerException.class,
+        () -> new ProportionalAllocator.AllocationDraft(shares, rounded, null));
+  }
+
+  @Test
+  void allocate_totalExceedsTotalCap_rejected() {
+    // total cap = 0.02, but we try to allocate 0.03 -> impossible (everything would hit cap)
+    Map<OrderItemId, Money> caps = new LinkedHashMap<>();
+    caps.put(A, money(BGN, "0.01"));
+    caps.put(B, money(BGN, "0.01"));
+
+    Money total = money(BGN, "0.03");
+
+    assertThrows(IllegalArgumentException.class, () -> allocator.allocate(BGN, total, caps));
+  }
+
+  @Test
+  void allocate_nullCapValue_rejected() {
+    Map<OrderItemId, Money> caps = new LinkedHashMap<>();
+    caps.put(A, null);
+
+    Money total = money(BGN, "0.01");
+
+    assertThrows(RuntimeException.class, () -> allocator.allocate(BGN, total, caps));
   }
 
   private static Money sum(Map<OrderItemId, Money> map) {

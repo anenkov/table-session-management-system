@@ -27,6 +27,19 @@ final class DefaultCheckAmountCalculatorTest {
 
   private final DefaultCheckAmountCalculator calc = new DefaultCheckAmountCalculator();
 
+  private static PaymentSelection sel(OrderItemId id, int qty) {
+    return PaymentSelection.of(id, qty);
+  }
+
+  private static ItemWriteOff itemWO(OrderItemId id, int qty, Money amount) {
+    return ItemWriteOff.of(id, qty, amount, WriteOffReason.DISCOUNT, null);
+  }
+
+  private static WriteOff sessionWO(Money amount) {
+    // If your API is different, change this single line.
+    return WriteOff.of(amount, WriteOffReason.DISCOUNT, null);
+  }
+
   @Test
   void quote_noWriteOffs_returnsGrossSelected() {
     List<SessionItemSnapshot> session =
@@ -234,18 +247,26 @@ final class DefaultCheckAmountCalculatorTest {
     assertTrue(ex.getMessage().contains(B.value().toString()));
   }
 
+  @Test
+  void quote_nullItemWriteOffs_rejected() {
+    List<SessionItemSnapshot> session = List.of(new SessionItemSnapshot(A, money(BGN, "10.00"), 1));
+    List<PaymentSelection> selections = List.of(sel(A, 1));
+    List<WriteOff> sessionWriteOffs = List.of();
+    assertThrows(
+        NullPointerException.class,
+        () -> calc.quote(BGN, session, selections, null, sessionWriteOffs));
+  }
+
   // ---- helpers ----
 
-  private static PaymentSelection sel(OrderItemId id, int qty) {
-    return PaymentSelection.of(id, qty);
-  }
+  @Test
+  void quote_nullSessionWriteOffs_rejected() {
+    List<SessionItemSnapshot> session = List.of(new SessionItemSnapshot(A, money(BGN, "10.00"), 1));
+    List<PaymentSelection> selections = List.of(sel(A, 1));
+    List<ItemWriteOff> itemWriteOffs = List.of();
 
-  private static ItemWriteOff itemWO(OrderItemId id, int qty, Money amount) {
-    return ItemWriteOff.of(id, qty, amount, WriteOffReason.DISCOUNT, null);
-  }
-
-  private static WriteOff sessionWO(Money amount) {
-    // If your API is different, change this single line.
-    return WriteOff.of(amount, WriteOffReason.DISCOUNT, null);
+    assertThrows(
+        NullPointerException.class,
+        () -> calc.quote(BGN, session, selections, itemWriteOffs, null));
   }
 }

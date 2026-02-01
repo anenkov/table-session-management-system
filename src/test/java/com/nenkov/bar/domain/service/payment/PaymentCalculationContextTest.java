@@ -120,7 +120,7 @@ final class PaymentCalculationContextTest {
   void create_selectedQuantityExceedsRemaining_rejected_afterConsolidation() {
     List<SessionItemSnapshot> items = List.of(new SessionItemSnapshot(A, money(BGN, "10.00"), 2));
 
-    // Consolidates to 3 which exceeds remaining=2
+    // Consolidates to 3 which exceeds the remaining=2
     List<PaymentSelection> selections =
         List.of(PaymentSelection.of(A, 1), PaymentSelection.of(A, 2));
 
@@ -153,5 +153,48 @@ final class PaymentCalculationContextTest {
     assertThrows(UnsupportedOperationException.class, () -> itemById.put(C, item1));
     assertThrows(UnsupportedOperationException.class, () -> selected.put(B, 1));
     assertThrows(UnsupportedOperationException.class, () -> remaining.put(B, 0));
+  }
+
+  @Test
+  void create_duplicateSessionItemIds_rejected() {
+    OrderItemId orderItemId = itemId("00000000-0000-0000-0000-000000000001");
+
+    List<SessionItemSnapshot> sessionItems =
+        List.of(
+            new SessionItemSnapshot(orderItemId, money(BGN, "10.00"), 1),
+            new SessionItemSnapshot(orderItemId, money(BGN, "10.00"), 2) // duplicate id
+            );
+
+    List<PaymentSelection> selections = List.of(PaymentSelection.of(orderItemId, 1));
+
+    IllegalArgumentException ex =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> PaymentCalculationContext.create(BGN, sessionItems, selections));
+
+    assertTrue(ex.getMessage().toLowerCase().contains("duplicate"));
+  }
+
+  @Test
+  void create_nullGuards_rejected() {
+    List<SessionItemSnapshot> items = List.of(new SessionItemSnapshot(A, money(BGN, "10.00"), 1));
+    List<PaymentSelection> selections = List.of(PaymentSelection.of(A, 1));
+
+    NullPointerException ex1 =
+        assertThrows(
+            NullPointerException.class,
+            () -> PaymentCalculationContext.create(null, items, selections));
+    assertTrue(ex1.getMessage().contains("currency"));
+
+    NullPointerException ex2 =
+        assertThrows(
+            NullPointerException.class,
+            () -> PaymentCalculationContext.create(BGN, null, selections));
+    assertTrue(ex2.getMessage().contains("sessionItems"));
+
+    NullPointerException ex3 =
+        assertThrows(
+            NullPointerException.class, () -> PaymentCalculationContext.create(BGN, items, null));
+    assertTrue(ex3.getMessage().contains("selections"));
   }
 }

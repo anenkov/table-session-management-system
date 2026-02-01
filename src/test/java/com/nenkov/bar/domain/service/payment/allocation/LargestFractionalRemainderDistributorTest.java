@@ -3,6 +3,7 @@ package com.nenkov.bar.domain.service.payment.allocation;
 import static com.nenkov.bar.testsupport.TestFixtures.itemId;
 import static com.nenkov.bar.testsupport.TestFixtures.money;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.nenkov.bar.domain.model.money.Money;
@@ -181,6 +182,28 @@ final class LargestFractionalRemainderDistributorTest {
     assertThrows(
         IllegalArgumentException.class,
         () -> dist.distribute(BGN, remainder, caps, shares, current));
+  }
+
+  @Test
+  void distribute_zeroRemainder_returnsCurrentUnchanged() {
+    List<ProportionalAllocator.Share> shares =
+        List.of(
+            new ProportionalAllocator.Share(A, new BigDecimal("0.004")),
+            new ProportionalAllocator.Share(B, new BigDecimal("0.004")),
+            new ProportionalAllocator.Share(C, new BigDecimal("0.004")));
+
+    Map<OrderItemId, Money> caps = capsAll("1.00");
+
+    Map<OrderItemId, Money> current = new LinkedHashMap<>();
+    current.put(A, money(BGN, "0.00"));
+    current.put(B, money(BGN, "0.01"));
+    current.put(C, money(BGN, "0.00"));
+
+    Map<OrderItemId, Money> result = dist.distribute(BGN, BigDecimal.ZERO, caps, shares, current);
+
+    // Should be identical mapping (and implementation currently returns the same reference)
+    assertEquals(current, result);
+    assertSame(current, result);
   }
 
   private static Map<OrderItemId, Money> capsAll(String cap) {
