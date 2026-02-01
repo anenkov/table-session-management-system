@@ -14,7 +14,7 @@ import java.util.Objects;
  * Remainder distribution policy: largest rounding error first (the largest fractional remainder).
  *
  * <p>This distributor applies cent-level adjustments (±0.01) to an existing rounded allocation
- * until the provided {@code remainder} is fully distributed.
+ * until the provided remainder amount is fully distributed.
  *
  * <p>Determinism:
  *
@@ -34,26 +34,25 @@ public final class LargestFractionalRemainderDistributor implements RemainderDis
   @Override
   public Map<OrderItemId, Money> distribute(
       String currency,
-      Money remainder,
+      BigDecimal remainderAmount,
       Map<OrderItemId, Money> caps,
       List<ProportionalAllocator.Share> shares,
       Map<OrderItemId, Money> current) {
     Objects.requireNonNull(currency, "currency must not be null");
-    Objects.requireNonNull(remainder, "remainder must not be null");
+    Objects.requireNonNull(remainderAmount, "remainderAmount must not be null");
     Objects.requireNonNull(caps, "caps must not be null");
     Objects.requireNonNull(shares, "shares must not be null");
     Objects.requireNonNull(current, "current must not be null");
 
     Money oneCent = Money.of(currency, MoneyPolicy.ONE_CENT);
-
     List<RankedShare> ranked = rank(currency, shares);
 
-    int sign = remainder.amount().signum();
+    int sign = remainderAmount.signum();
     if (sign > 0) {
-      return distributePositiveRemainder(remainder, oneCent, caps, ranked, current);
+      return distributePositiveRemainder(remainderAmount, oneCent, caps, ranked, current);
     }
     if (sign < 0) {
-      return distributeNegativeRemainder(remainder, oneCent, ranked, current);
+      return distributeNegativeRemainder(remainderAmount, oneCent, ranked, current);
     }
     return current;
   }
@@ -87,20 +86,21 @@ public final class LargestFractionalRemainderDistributor implements RemainderDis
   }
 
   private static Map<OrderItemId, Money> distributePositiveRemainder(
-      Money remainder,
+      BigDecimal remainderAmount,
       Money oneCent,
       Map<OrderItemId, Money> caps,
       List<RankedShare> rankedDesc,
       Map<OrderItemId, Money> current) {
-    Money left = remainder;
 
-    while (left.amount().signum() > 0) {
+    BigDecimal left = remainderAmount;
+
+    while (left.signum() > 0) {
       boolean progressed = applyOnePositivePass(oneCent, caps, rankedDesc, current);
       if (!progressed) {
         throw new IllegalArgumentException(
             "Unable to distribute positive rounding remainder safely");
       }
-      left = left.minus(oneCent);
+      left = left.subtract(MoneyPolicy.ONE_CENT);
     }
 
     return current;
@@ -111,6 +111,7 @@ public final class LargestFractionalRemainderDistributor implements RemainderDis
       Map<OrderItemId, Money> caps,
       List<RankedShare> rankedDesc,
       Map<OrderItemId, Money> current) {
+
     for (RankedShare rs : rankedDesc) {
       Money now = requireCurrent(current, rs.id());
       Money cap = requireCap(caps, rs.id());
@@ -124,25 +125,26 @@ public final class LargestFractionalRemainderDistributor implements RemainderDis
   }
 
   private static Map<OrderItemId, Money> distributeNegativeRemainder(
-      Money remainder,
+      BigDecimal remainderAmount,
       Money oneCent,
       List<RankedShare> rankedDesc,
       Map<OrderItemId, Money> current) {
+
     // For the negative remainder, we want the most negative rounding errors first.
     List<RankedShare> rankedAsc = new ArrayList<>(rankedDesc);
     rankedAsc.sort(
         Comparator.comparing(RankedShare::roundingError)
             .thenComparing(RankedShare::id, TIE_BREAKER));
 
-    Money left = remainder;
+    BigDecimal left = remainderAmount;
 
-    while (left.amount().signum() < 0) {
+    while (left.signum() < 0) {
       boolean progressed = applyOneNegativePass(oneCent, rankedAsc, current);
       if (!progressed) {
         throw new IllegalArgumentException(
             "Unable to distribute negative rounding remainder safely");
       }
-      left = left.plus(oneCent);
+      left = left.add(MoneyPolicy.ONE_CENT);
     }
 
     return current;
@@ -150,6 +152,7 @@ public final class LargestFractionalRemainderDistributor implements RemainderDis
 
   private static boolean applyOneNegativePass(
       Money oneCent, List<RankedShare> rankedAsc, Map<OrderItemId, Money> current) {
+
     for (RankedShare rs : rankedAsc) {
       Money now = requireCurrent(current, rs.id());
 

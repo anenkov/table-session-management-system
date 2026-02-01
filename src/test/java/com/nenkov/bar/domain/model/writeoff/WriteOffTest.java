@@ -1,9 +1,9 @@
 package com.nenkov.bar.domain.model.writeoff;
 
+import static com.nenkov.bar.testsupport.TestFixtures.money;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.nenkov.bar.domain.model.money.Money;
-import java.math.BigDecimal;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -13,9 +13,9 @@ class WriteOffTest {
 
   @Test
   void of_minimal_success() {
-    WriteOff wo = WriteOff.of(getMoney("USD", "1.00"), WriteOffReason.DISCOUNT);
+    WriteOff wo = WriteOff.of(money("USD", "1.00"), WriteOffReason.DISCOUNT);
 
-    assertEquals(getMoney("USD", "1.00"), wo.amount());
+    assertEquals(money("USD", "1.00"), wo.amount());
     assertEquals(WriteOffReason.DISCOUNT, wo.reason());
     assertNull(wo.note());
   }
@@ -23,7 +23,7 @@ class WriteOffTest {
   @Test
   void of_withNote_success_andTrimmed() {
     WriteOff wo =
-        WriteOff.of(getMoney("USD", "1.00"), WriteOffReason.ADMIN_ADJUSTMENT, "  manual fix  ");
+        WriteOff.of(money("USD", "1.00"), WriteOffReason.ADMIN_ADJUSTMENT, "  manual fix  ");
     assertEquals("manual fix", wo.note());
   }
 
@@ -36,7 +36,7 @@ class WriteOffTest {
 
   @Test
   void reason_null_rejected() {
-    Money money = getMoney("EUR", "2.00");
+    Money money = money("EUR", "2.00");
     NullPointerException ex =
         assertThrows(NullPointerException.class, () -> WriteOff.of(money, null));
     assertTrue(ex.getMessage().contains("reason"));
@@ -55,7 +55,7 @@ class WriteOffTest {
   @ParameterizedTest
   @MethodSource("blankNotes")
   void blank_note_normalizes_toNull(String note) {
-    WriteOff wo = WriteOff.of(getMoney("USD", "1.00"), WriteOffReason.ADMIN_ADJUSTMENT, note);
+    WriteOff wo = WriteOff.of(money("USD", "1.00"), WriteOffReason.ADMIN_ADJUSTMENT, note);
     assertNull(wo.note());
   }
 
@@ -66,7 +66,7 @@ class WriteOffTest {
   @Test
   void note_length_overMax_rejected() {
     String tooLong = "a".repeat(201);
-    Money money = getMoney("EUR", "2.00");
+    Money money = money("EUR", "2.00");
     IllegalArgumentException ex =
         assertThrows(
             IllegalArgumentException.class,
@@ -77,14 +77,10 @@ class WriteOffTest {
 
   @Test
   void value_semantics_equalByValue() {
-    WriteOff a = WriteOff.of(getMoney("USD", "1.00"), WriteOffReason.DISCOUNT, "x");
-    WriteOff b = WriteOff.of(getMoney("USD", "1.00"), WriteOffReason.DISCOUNT, " x ");
+    WriteOff a = WriteOff.of(money("USD", "1.00"), WriteOffReason.DISCOUNT, "x");
+    WriteOff b = WriteOff.of(money("USD", "1.00"), WriteOffReason.DISCOUNT, " x ");
 
     assertEquals(a, b);
     assertEquals(a.hashCode(), b.hashCode());
-  }
-
-  private static Money getMoney(String currency, String amount) {
-    return Money.of(currency, new BigDecimal(amount));
   }
 }

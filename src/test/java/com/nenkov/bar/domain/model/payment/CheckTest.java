@@ -1,11 +1,11 @@
 package com.nenkov.bar.domain.model.payment;
 
+import static com.nenkov.bar.testsupport.TestFixtures.money;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.nenkov.bar.domain.exceptions.IllegalDomainStateException;
 import com.nenkov.bar.domain.model.money.Money;
 import com.nenkov.bar.domain.model.session.OrderItemId;
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -21,15 +21,12 @@ class CheckTest {
 
     PaidItem item =
         PaidItem.of(
-            OrderItemId.of(UUID.randomUUID()),
-            1,
-            Money.of("USD", new BigDecimal("5.00")),
-            Money.of("USD", new BigDecimal("5.00")));
+            OrderItemId.of(UUID.randomUUID()), 1, money("USD", "5.00"), money("USD", "5.00"));
 
     List<PaidItem> original = new ArrayList<>();
     original.add(item);
 
-    Check check = Check.create(id, Money.of("USD", new BigDecimal("5.00")), original, createdAt);
+    Check check = Check.create(id, money("USD", "5.00"), original, createdAt);
 
     assertEquals(id, check.id());
     assertEquals(CheckStatus.CREATED, check.status());
@@ -49,10 +46,7 @@ class CheckTest {
 
     PaidItem item =
         PaidItem.of(
-            OrderItemId.of(UUID.randomUUID()),
-            1,
-            Money.of("USD", new BigDecimal("5.00")),
-            Money.of("USD", new BigDecimal("5.00")));
+            OrderItemId.of(UUID.randomUUID()), 1, money("USD", "5.00"), money("USD", "5.00"));
 
     Money zeroMoney = Money.zero("USD");
     List<PaidItem> items = List.of(item);
@@ -67,7 +61,7 @@ class CheckTest {
   @Test
   void paidItems_mustNotBeEmpty() {
     Instant createdAt = Instant.parse("2026-01-31T10:00:00Z");
-    Money amount = Money.of("USD", new BigDecimal("1.00"));
+    Money amount = money("USD", "1.00");
     List<PaidItem> items = List.of();
 
     IllegalArgumentException ex =
@@ -83,12 +77,9 @@ class CheckTest {
 
     PaidItem item =
         PaidItem.of(
-            OrderItemId.of(UUID.randomUUID()),
-            1,
-            Money.of("EUR", new BigDecimal("5.00")),
-            Money.of("EUR", new BigDecimal("5.00")));
+            OrderItemId.of(UUID.randomUUID()), 1, money("EUR", "5.00"), money("EUR", "5.00"));
 
-    Money amount = Money.of("USD", new BigDecimal("5.00"));
+    Money amount = money("USD", "5.00");
     List<PaidItem> items = List.of(item);
 
     IllegalArgumentException ex =
@@ -147,11 +138,8 @@ class CheckTest {
   private static Check newCreatedCheck(Instant createdAt) {
     PaidItem item =
         PaidItem.of(
-            OrderItemId.of(UUID.randomUUID()),
-            1,
-            Money.of("USD", new BigDecimal("5.00")),
-            Money.of("USD", new BigDecimal("5.00")));
+            OrderItemId.of(UUID.randomUUID()), 1, money("USD", "5.00"), money("USD", "5.00"));
 
-    return Check.createNew(Money.of("USD", new BigDecimal("5.00")), List.of(item), createdAt);
+    return Check.createNew(money("USD", "5.00"), List.of(item), createdAt);
   }
 }

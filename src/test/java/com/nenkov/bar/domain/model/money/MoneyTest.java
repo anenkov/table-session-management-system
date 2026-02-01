@@ -1,5 +1,6 @@
 package com.nenkov.bar.domain.model.money;
 
+import static com.nenkov.bar.testsupport.TestFixtures.money;
 import static org.assertj.core.api.Assertions.*;
 
 import com.nenkov.bar.domain.exceptions.IllegalDomainStateException;
@@ -13,9 +14,7 @@ class MoneyTest {
 
   @Test
   void createsMoneyWithNormalization() {
-    BigDecimal rawAmount = new BigDecimal("10.235");
-
-    Money money = Money.of(EUR, rawAmount);
+    Money money = money(EUR, "10.235");
 
     assertThat(money.amount()).isEqualByComparingTo("10.24");
     assertThat(money.currency()).isEqualTo(EUR);
