@@ -1,10 +1,10 @@
 package com.nenkov.bar.domain.model.writeoff;
 
+import static com.nenkov.bar.testsupport.TestFixtures.money;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.nenkov.bar.domain.model.money.Money;
 import com.nenkov.bar.domain.model.session.OrderItemId;
-import java.math.BigDecimal;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
@@ -17,12 +17,11 @@ class ItemWriteOffTest {
   void of_minimal_success() {
     OrderItemId itemId = OrderItemId.of(UUID.randomUUID());
 
-    ItemWriteOff wo =
-        ItemWriteOff.of(itemId, 2, getMoney("USD", "3.00"), WriteOffReason.COMPENSATION);
+    ItemWriteOff wo = ItemWriteOff.of(itemId, 2, money("USD", "3.00"), WriteOffReason.COMPENSATION);
 
     assertEquals(itemId, wo.itemId());
     assertEquals(2, wo.quantity());
-    assertEquals(getMoney("USD", "3.00"), wo.amount());
+    assertEquals(money("USD", "3.00"), wo.amount());
     assertEquals(WriteOffReason.COMPENSATION, wo.reason());
     assertNull(wo.note());
   }
@@ -32,15 +31,14 @@ class ItemWriteOffTest {
     OrderItemId itemId = OrderItemId.of(UUID.randomUUID());
 
     ItemWriteOff wo =
-        ItemWriteOff.of(
-            itemId, 1, getMoney("USD", "1.00"), WriteOffReason.ADMIN_ADJUSTMENT, "  x  ");
+        ItemWriteOff.of(itemId, 1, money("USD", "1.00"), WriteOffReason.ADMIN_ADJUSTMENT, "  x  ");
 
     assertEquals("x", wo.note());
   }
 
   @Test
   void itemId_null_rejected() {
-    Money money = getMoney("EUR", "1.00");
+    Money money = money("EUR", "1.00");
     NullPointerException ex =
         assertThrows(
             NullPointerException.class,
@@ -64,7 +62,7 @@ class ItemWriteOffTest {
   @Test
   void reason_null_rejected() {
     OrderItemId itemId = OrderItemId.of(UUID.randomUUID());
-    Money money = getMoney("EUR", "1.00");
+    Money money = money("EUR", "1.00");
 
     NullPointerException ex =
         assertThrows(NullPointerException.class, () -> ItemWriteOff.of(itemId, 1, money, null));
@@ -75,7 +73,7 @@ class ItemWriteOffTest {
   @Test
   void quantity_mustBePositive() {
     OrderItemId itemId = OrderItemId.of(UUID.randomUUID());
-    Money money = getMoney("EUR", "2.00");
+    Money money = money("EUR", "2.00");
 
     IllegalArgumentException ex =
         assertThrows(
@@ -101,7 +99,7 @@ class ItemWriteOffTest {
   @MethodSource("blankNotes")
   void blank_note_normalizes_toNull(String note) {
     OrderItemId itemId = OrderItemId.of(UUID.randomUUID());
-    Money money = getMoney("USD", "1.00");
+    Money money = money("USD", "1.00");
 
     ItemWriteOff wo = ItemWriteOff.of(itemId, 1, money, WriteOffReason.ADMIN_ADJUSTMENT, note);
 
@@ -116,7 +114,7 @@ class ItemWriteOffTest {
   void note_length_overMax_rejected() {
     OrderItemId itemId = OrderItemId.of(UUID.randomUUID());
     String tooLong = "a".repeat(201);
-    Money money = getMoney("EUR", "1.00");
+    Money money = money("EUR", "1.00");
 
     IllegalArgumentException ex =
         assertThrows(
@@ -130,16 +128,11 @@ class ItemWriteOffTest {
   void value_semantics_equalByValue() {
     OrderItemId itemId = OrderItemId.of(UUID.randomUUID());
 
-    ItemWriteOff a =
-        ItemWriteOff.of(itemId, 1, getMoney("USD", "1.00"), WriteOffReason.DISCOUNT, "x");
+    ItemWriteOff a = ItemWriteOff.of(itemId, 1, money("USD", "1.00"), WriteOffReason.DISCOUNT, "x");
     ItemWriteOff b =
-        ItemWriteOff.of(itemId, 1, getMoney("USD", "1.00"), WriteOffReason.DISCOUNT, " x ");
+        ItemWriteOff.of(itemId, 1, money("USD", "1.00"), WriteOffReason.DISCOUNT, " x ");
 
     assertEquals(a, b);
     assertEquals(a.hashCode(), b.hashCode());
-  }
-
-  private static Money getMoney(String currency, String amount) {
-    return Money.of(currency, new BigDecimal(amount));
   }
 }

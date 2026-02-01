@@ -46,23 +46,26 @@ public final class ProportionalAllocator {
   }
 
   /**
-   * Allocates {@code totalToAllocate} proportionally across items using {@code caps} to derive
-   * shares and to cap the final rounded amounts.
+   * Allocates {@code totalToAllocate} proportionally across items using {@code caps} as weights and
+   * as per-item upper bounds for the final rounded allocations.
    *
-   * <p>Input requirements:
+   * <p>If {@code totalToAllocate} is zero, returns a zero allocation for every id in {@code caps}
+   * (and returns an empty map when {@code caps} is empty).
+   *
+   * <h4>Requirements</h4>
    *
    * <ul>
-   *   <li>{@code currency} must match {@code totalToAllocate} and all cap values
+   *   <li>{@code totalToAllocate} must have the same currency as all values in {@code caps}
    *   <li>{@code caps} must contain a cap for every item that participates in the allocation
-   *   <li>At least one cap must be &gt; 0 when {@code totalToAllocate} is non-zero
+   *   <li>When {@code totalToAllocate} is non-zero, at least one cap must be &gt; 0
    * </ul>
    *
    * <p>Remainders caused by cent-level rounding are distributed deterministically by the configured
    * {@link RemainderDistributor}.
    *
-   * @return a map of allocated amounts per item id (in deterministic insertion order)
-   * @throws IllegalArgumentException if currency mismatches exist, total cap is zero for a non-zero
-   *     allocation, or caps are missing
+   * @return allocated amounts per item id (iteration order is deterministic)
+   * @throws IllegalArgumentException if {@code totalToAllocate} is non-zero and the sum of caps is
+   *     zero
    */
   public Map<OrderItemId, Money> allocate(
       String currency, Money totalToAllocate, Map<OrderItemId, Money> caps) {
@@ -72,9 +75,8 @@ public final class ProportionalAllocator {
 
     verifyCurrency(currency, totalToAllocate, caps);
 
-    Map<OrderItemId, Money> trivial = zerosIfTrivial(currency, totalToAllocate, caps);
-    if (!trivial.isEmpty()) {
-      return trivial;
+    if (totalToAllocate.isZero()) {
+      return zeroAllocation(currency, caps);
     }
 
     Money totalCap = sumMoney(currency, caps.values());
@@ -83,12 +85,12 @@ public final class ProportionalAllocator {
     }
 
     AllocationDraft draft = draftAllocation(currency, totalToAllocate, caps, totalCap);
-    if (draft.remainder().isZero()) {
+    if (draft.remainderAmount().signum() == 0) {
       return draft.rounded();
     }
 
     return remainderDistributor.distribute(
-        currency, draft.remainder(), caps, draft.shares(), draft.rounded());
+        currency, draft.remainderAmount(), caps, draft.shares(), draft.rounded());
   }
 
   private static void verifyCurrency(
@@ -104,17 +106,20 @@ public final class ProportionalAllocator {
   }
 
   /**
-   * Returns a precomputed allocation for trivial cases.
+   * Returns a zero-valued allocation for all item ids present in {@code caps}.
    *
-   * <p>When {@code totalToAllocate} is zero, the result is a zero allocation for every id in {@code
-   * caps}. Otherwise, returns an empty map to signal "not trivial".
+   * <p>The resulting map contains one entry per {@link OrderItemId} in {@code caps}, each mapped to
+   * {@link Money#zero(String)} using the provided {@code currency}.
+   *
+   * <p>The iteration order of the returned map matches the iteration order of {@code
+   * caps.keySet()}, ensuring deterministic behavior for downstream processing.
+   *
+   * <p>This method is used when {@code totalToAllocate} is zero, in which case proportional share
+   * computation and remainder distribution are skipped entirely.
    */
-  private static Map<OrderItemId, Money> zerosIfTrivial(
-      String currency, Money totalToAllocate, Map<OrderItemId, Money> caps) {
-    if (totalToAllocate.isZero()) {
-      return zeros(currency, caps.keySet());
-    }
-    return Map.of();
+  private static Map<OrderItemId, Money> zeroAllocation(
+      String currency, Map<OrderItemId, Money> caps) {
+    return zeros(currency, caps.keySet());
   }
 
   private static AllocationDraft draftAllocation(
@@ -123,9 +128,13 @@ public final class ProportionalAllocator {
     Map<OrderItemId, Money> rounded = roundAndCap(currency, caps, shares);
 
     Money sumRounded = sumMoney(currency, rounded.values());
-    Money remainder = totalToAllocate.minus(sumRounded);
 
-    return new AllocationDraft(shares, rounded, remainder);
+    // Signed rounding delta: totalToAllocate.amount() - sumRounded.amount().
+    // May be negative if rounding pushed the per-item sum above the total.
+    // Represented as BigDecimal because Money is non-negative.
+    BigDecimal remainderAmount = totalToAllocate.amount().subtract(sumRounded.amount());
+
+    return new AllocationDraft(shares, rounded, remainderAmount);
   }
 
   /**
@@ -209,5 +218,13 @@ public final class ProportionalAllocator {
     }
   }
 
-  record AllocationDraft(List<Share> shares, Map<OrderItemId, Money> rounded, Money remainder) {}
+  record AllocationDraft(
+      List<Share> shares, Map<OrderItemId, Money> rounded, BigDecimal remainderAmount) {
+
+    AllocationDraft {
+      Objects.requireNonNull(shares, "shares must not be null");
+      Objects.requireNonNull(rounded, "rounded must not be null");
+      Objects.requireNonNull(remainderAmount, "remainderAmount must not be null");
+    }
+  }
 }

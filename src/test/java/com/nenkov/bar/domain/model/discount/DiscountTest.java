@@ -1,5 +1,6 @@
 package com.nenkov.bar.domain.model.discount;
 
+import static com.nenkov.bar.testsupport.TestFixtures.money;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -65,11 +66,11 @@ class DiscountTest {
 
   @Test
   void flat_amount_discount_success() {
-    Discount d =
-        Discount.flatAmount(Money.of("USD", new BigDecimal("5.00")), WriteOffReason.PROMOTION);
+
+    Discount d = Discount.flatAmount(money("USD", "5.00"), WriteOffReason.PROMOTION);
 
     assertEquals(DiscountType.FLAT_AMOUNT, d.type());
-    assertEquals(Money.of("USD", new BigDecimal("5.00")), d.amount());
+    assertEquals(money("USD", "5.00"), d.amount());
     assertTrue(d.isFlatAmount());
     assertFalse(d.isPercent());
   }
@@ -109,8 +110,7 @@ class DiscountTest {
 
   @Test
   void percent_accessor_throws_forFlatAmountDiscount() {
-    Discount d =
-        Discount.flatAmount(Money.of("USD", new BigDecimal("5.00")), WriteOffReason.DISCOUNT);
+    Discount d = Discount.flatAmount(money("USD", "5.00"), WriteOffReason.DISCOUNT);
 
     IllegalStateException ex = assertThrows(IllegalStateException.class, d::percent);
     assertTrue(ex.getMessage().contains("PERCENT"));

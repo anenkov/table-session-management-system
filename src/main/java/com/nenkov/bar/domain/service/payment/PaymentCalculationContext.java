@@ -2,6 +2,7 @@ package com.nenkov.bar.domain.service.payment;
 
 import com.nenkov.bar.domain.model.payment.PaymentSelection;
 import com.nenkov.bar.domain.model.session.OrderItemId;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,7 +29,7 @@ import java.util.Objects;
  *   <li>Selected quantity does not exceed the item's {@code remainingQuantity}
  * </ul>
  *
- * <p>All exposed maps are immutable snapshots ({@link Map#copyOf(Map)}).
+ * <p>All exposed maps are immutable snapshots ({@link Collections#unmodifiableMap(Map)}).
  */
 public final class PaymentCalculationContext {
 
@@ -42,9 +43,10 @@ public final class PaymentCalculationContext {
       Map<OrderItemId, SessionItemSnapshot> itemById,
       Map<OrderItemId, Integer> selectedQtyByItem) {
     this.currency = currency;
-    this.itemById = Map.copyOf(itemById);
-    this.selectedQtyByItem = Map.copyOf(selectedQtyByItem);
-    this.remainingQtyByItem = Map.copyOf(buildRemainingQtyByItem(itemById));
+    this.itemById = Collections.unmodifiableMap(new LinkedHashMap<>(itemById));
+    this.selectedQtyByItem = Collections.unmodifiableMap(new LinkedHashMap<>(selectedQtyByItem));
+    this.remainingQtyByItem =
+        Collections.unmodifiableMap(new LinkedHashMap<>(buildRemainingQtyByItem(itemById)));
   }
 
   /** Returns the session currency used for all calculations. */
@@ -115,7 +117,7 @@ public final class PaymentCalculationContext {
   /**
    * Indexes session items by {@link OrderItemId} and validates currency consistency.
    *
-   * <p>Rejects duplicate item ids. The resulting map preserves the input list order to support
+   * <p>Rejects duplicate item ids. The resulting map preserves the input list to support
    * deterministic downstream processing.
    */
   private static Map<OrderItemId, SessionItemSnapshot> indexSessionItems(
