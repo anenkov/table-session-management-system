@@ -1,6 +1,7 @@
 package com.nenkov.bar.application.session.handler;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -19,6 +20,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -64,15 +66,15 @@ final class CloseTableSessionHandlerTest {
     CloseTableSessionHandler handler = new CloseTableSessionHandler(tableSessionRepository);
 
     TableSessionId id = TableSessionId.of("missing");
+    CloseTableSessionInput input = new CloseTableSessionInput(id);
+
     when(tableSessionRepository.findById(id)).thenReturn(Optional.empty());
 
     Throwable thrown =
-        org.junit.jupiter.api.Assertions.assertThrows(
-            TableSessionNotFoundException.class,
-            () -> handler.handle(new CloseTableSessionInput(id)));
+        assertThrows(TableSessionNotFoundException.class, () -> handler.handle(input));
 
     assertThat(thrown.getMessage()).contains("TableSession not found: " + id.value());
-    verify(tableSessionRepository, never()).save(org.mockito.ArgumentMatchers.any());
+    verify(tableSessionRepository, never()).save(ArgumentMatchers.any());
   }
 
   @Test
@@ -89,25 +91,21 @@ final class CloseTableSessionHandlerTest {
             List.of(),
             TableSessionStatus.CLOSED,
             Instant.parse("2026-01-01T00:00:00Z"));
+    CloseTableSessionInput input = new CloseTableSessionInput(id);
 
     when(tableSessionRepository.findById(id)).thenReturn(Optional.of(alreadyClosed));
 
-    Throwable thrown =
-        org.junit.jupiter.api.Assertions.assertThrows(
-            IllegalDomainStateException.class,
-            () -> handler.handle(new CloseTableSessionInput(id)));
+    Throwable thrown = assertThrows(IllegalDomainStateException.class, () -> handler.handle(input));
 
     assertThat(thrown.getMessage()).contains("already CLOSED");
-    verify(tableSessionRepository, never()).save(org.mockito.ArgumentMatchers.any());
+    verify(tableSessionRepository, never()).save(ArgumentMatchers.any());
   }
 
   @Test
   void handle_nullInput_throwsNpe() {
     CloseTableSessionHandler handler = new CloseTableSessionHandler(tableSessionRepository);
 
-    Throwable thrown =
-        org.junit.jupiter.api.Assertions.assertThrows(
-            NullPointerException.class, () -> handler.handle(null));
+    Throwable thrown = assertThrows(NullPointerException.class, () -> handler.handle(null));
 
     assertThat(thrown.getMessage()).contains("input must not be null");
   }
@@ -115,8 +113,7 @@ final class CloseTableSessionHandlerTest {
   @Test
   void constructor_nullRepository_throwsNpe() {
     Throwable thrown =
-        org.junit.jupiter.api.Assertions.assertThrows(
-            NullPointerException.class, () -> new CloseTableSessionHandler(null));
+        assertThrows(NullPointerException.class, () -> new CloseTableSessionHandler(null));
 
     assertThat(thrown.getMessage()).contains("tableSessionRepository must not be null");
   }
