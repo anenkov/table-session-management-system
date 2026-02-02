@@ -43,13 +43,6 @@ jobs:
       - name: Build + verify (Spotless + tests + JaCoCo)
         run: mvn -B verify
 
-      - name: Debug JaCoCo files
-        run: |
-          echo "=== target directory ==="
-          ls -la target || true
-          echo "=== jacoco files ==="
-          find target -maxdepth 4 -type f | grep -i jacoco || true
-
       - name: SonarCloud analysis
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

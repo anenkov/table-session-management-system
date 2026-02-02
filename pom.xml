@@ -1,215 +1,240 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
 
-    <parent>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-parent</artifactId>
-        <version>4.0.1</version>
-        <relativePath/>
-    </parent>
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>4.0.2</version>
+    <relativePath/>
+  </parent>
 
-    <groupId>com.nenkov</groupId>
-    <artifactId>table-session-management-system</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
-    <name>Table Session Management System</name>
-    <description>Table session (bill) management for a hospitality venue.</description>
+  <groupId>com.nenkov</groupId>
+  <artifactId>table-session-management-system</artifactId>
+  <version>0.0.1-SNAPSHOT</version>
+  <name>Table Session Management System</name>
+  <description>Table session (bill) management for a hospitality venue.</description>
 
-    <properties>
-        <java.version>25</java.version>
-        <flyway.version>11.20.1</flyway.version>
-        <sonar.organization>anenkov</sonar.organization>
-    </properties>
+  <properties>
+    <assertj.version>3.27.7</assertj.version>
+    <flyway.version>11.20.1</flyway.version>
+    <java.version>25</java.version>
+    <maven.surefire.version>3.5.2</maven.surefire.version>
+    <sonar.organization>anenkov</sonar.organization>
+  </properties>
 
-    <dependencies>
+  <dependencies>
 
-        <!-- Reactive HTTP stack (WebFlux, Netty) -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-webflux</artifactId>
-        </dependency>
+    <!-- Architecture tests (keep the domain layer pure) -->
+    <dependency>
+      <groupId>com.tngtech.archunit</groupId>
+      <artifactId>archunit-junit5</artifactId>
+      <version>1.4.1</version>
+      <scope>test</scope>
+    </dependency>
 
-        <!-- Reactive security infrastructure (JWT, filters, auth) -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-security</artifactId>
-        </dependency>
+    <!-- Reactor testing utilities -->
+    <dependency>
+      <groupId>io.projectreactor</groupId>
+      <artifactId>reactor-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <!-- AssertJ: override transitive version from spring-boot-starter-test -->
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <version>${assertj.version}</version>
+      <scope>test</scope>
+    </dependency>
 
-        <!-- Reactive data access abstraction (R2DBC repositories) -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-r2dbc</artifactId>
-        </dependency>
+    <!-- Flyway PostgreSQL 18+ support -->
+    <dependency>
+      <groupId>org.flywaydb</groupId>
+      <artifactId>flyway-database-postgresql</artifactId>
+      <version>${flyway.version}</version>
+      <scope>runtime</scope>
+    </dependency>
 
-        <!-- Flyway auto-configuration -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-flyway</artifactId>
-        </dependency>
+    <!-- JetBrains annotations: IDE nullability hints only, no runtime behavior -->
+    <dependency>
+      <groupId>org.jetbrains</groupId>
+      <artifactId>annotations</artifactId>
+      <version>26.0.2-1</version>
+      <scope>compile</scope>
+    </dependency>
 
-        <!-- JWT bearer token support (resource server for WebFlux) -->
-        <!-- OAuth2 JOSE support (JWT/JWS headers, signing algorithms, Nimbus integration) -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
-        </dependency>
+    <!-- JDBC driver required by Flyway -->
+    <dependency>
+      <groupId>org.postgresql</groupId>
+      <artifactId>postgresql</artifactId>
+      <scope>runtime</scope>
+    </dependency>
 
-        <!-- Jakarta Bean Validation (request DTO validation with @Valid, @NotBlank, etc.) -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-validation</artifactId>
-        </dependency>
+    <!-- PostgreSQL reactive driver -->
+    <dependency>
+      <groupId>org.postgresql</groupId>
+      <artifactId>r2dbc-postgresql</artifactId>
+    </dependency>
 
-        <!-- PostgreSQL reactive driver -->
-        <dependency>
-            <groupId>org.postgresql</groupId>
-            <artifactId>r2dbc-postgresql</artifactId>
-        </dependency>
-        
+    <!-- Operational endpoints (health checks) -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-actuator</artifactId>
+    </dependency>
 
-        <!-- Flyway migration engine -->
-        <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-core</artifactId>
-        </dependency>
+    <!-- Reactive data access abstraction (R2DBC repositories) -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-r2dbc</artifactId>
+    </dependency>
 
-        <!-- Flyway PostgreSQL 18+ support -->
-        <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-database-postgresql</artifactId>
-            <version>${flyway.version}</version>
-            <scope>runtime</scope>
-        </dependency>
+    <!-- Flyway auto-configuration -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-flyway</artifactId>
+    </dependency>
 
-        <!-- JDBC driver required by Flyway -->
-        <dependency>
-            <groupId>org.postgresql</groupId>
-            <artifactId>postgresql</artifactId>
-            <scope>runtime</scope>
-        </dependency>
+    <!-- JWT bearer token support (resource server for WebFlux) -->
+    <!-- OAuth2 JOSE support (JWT/JWS headers, signing algorithms, Nimbus integration) -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+    </dependency>
 
-        <!-- Operational endpoints (health checks) -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-actuator</artifactId>
-        </dependency>
+    <!-- Reactive security infrastructure (JWT, filters, auth) -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-security</artifactId>
+    </dependency>
 
-        <!-- Spring Boot test support -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
-        </dependency>
+    <!-- Spring Boot test support -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>org.assertj</groupId>
+          <artifactId>assertj-core</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
 
-        <!-- Reactor testing utilities -->
-        <dependency>
-            <groupId>io.projectreactor</groupId>
-            <artifactId>reactor-test</artifactId>
-            <scope>test</scope>
-        </dependency>
+    <!-- Jakarta Bean Validation (request DTO validation with @Valid, @NotBlank, etc.) -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-validation</artifactId>
+    </dependency>
 
-        <!-- Architecture tests (keep the domain layer pure) -->
-        <dependency>
-            <groupId>com.tngtech.archunit</groupId>
-            <artifactId>archunit-junit5</artifactId>
-            <version>1.4.1</version>
-            <scope>test</scope>
-        </dependency>
+    <!-- Reactive HTTP stack (WebFlux, Netty) -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-webflux</artifactId>
+    </dependency>
+  </dependencies>
 
-        <!--
-          JetBrains annotations: source-level nullability hints for IDE/static analysis.
-          Used selectively (e.g. Comparable.compareTo parameter), no runtime behavior.
-        -->
-        <dependency>
-            <groupId>org.jetbrains</groupId>
-            <artifactId>annotations</artifactId>
-            <version>26.0.2-1</version>
-            <scope>compile</scope>
-        </dependency>
-    </dependencies>
+  <build>
+    <plugins>
 
-
-    <build>
-        <plugins>
-
-            <!-- Spring Boot build & run support -->
-            <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
-            </plugin>
-
-            <!-- Code coverage (JaCoCo) -->
-            <plugin>
-                <groupId>org.jacoco</groupId>
-                <artifactId>jacoco-maven-plugin</artifactId>
-                <version>0.8.14</version>
-                <executions>
-                    <execution>
-                        <id>prepare-agent</id>
-                        <goals>
-                            <goal>prepare-agent</goal>
-                        </goals>
-                        <configuration>
-                            <!-- Write JaCoCo agent args into ${argLine} -->
-                            <propertyName>argLine</propertyName>
-                            <destFile>${project.build.directory}/jacoco.exec</destFile>
-                        </configuration>
-                    </execution>
-
-                    <execution>
-                        <id>report</id>
-                        <phase>test</phase>
-                        <goals>
-                            <goal>report</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-
-            <!-- Unit test execution -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <configuration>
-                    <forkCount>1</forkCount>
-                    <reuseForks>true</reuseForks>
-
-                    <!-- Keep JaCoCo's ${argLine} and add JDK 21+ Mockito flag -->
-                    <argLine>${argLine} -XX:+EnableDynamicAgentLoading</argLine>
-                </configuration>
-            </plugin>
-
-            <!--
+      <!--
               Spotless: enforces deterministic Java formatting using google-java-format.
               Fails the build on formatting drift; auto-fix via mvn spotless:apply.
+              Sorts and verifies Maven pom.xml files.
             -->
-            <plugin>
-                <groupId>com.diffplug.spotless</groupId>
-                <artifactId>spotless-maven-plugin</artifactId>
-                <version>3.2.1</version>
-                <configuration>
-                    <java>
-                        <googleJavaFormat>
-                            <version>1.33.0</version>
-                        </googleJavaFormat>
-                        <removeUnusedImports />
-                        <trimTrailingWhitespace />
-                        <endWithNewline />
-                    </java>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>spotless-check</id>
-                        <phase>verify</phase>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
-    </build>
+      <plugin>
+        <groupId>com.diffplug.spotless</groupId>
+        <artifactId>spotless-maven-plugin</artifactId>
+        <version>3.2.1</version>
+        <configuration>
+
+          <!-- Java formatting -->
+          <java>
+            <googleJavaFormat>
+              <version>1.33.0</version>
+            </googleJavaFormat>
+            <removeUnusedImports/>
+            <trimTrailingWhitespace/>
+            <endWithNewline/>
+          </java>
+
+          <!-- Maven pom.xml formatting -->
+          <pom>
+            <sortPom>
+              <!-- Explicit sort order (required by newer sortPom) -->
+              <sortDependencies>groupId,artifactId</sortDependencies>
+              <sortPlugins>groupId,artifactId</sortPlugins>
+              <sortProperties>true</sortProperties>
+
+              <!-- Preserve readability -->
+              <keepBlankLines>true</keepBlankLines>
+              <expandEmptyElements>false</expandEmptyElements>
+
+              <!-- Maven conventions -->
+              <encoding>UTF-8</encoding>
+              <lineSeparator>\n</lineSeparator>
+            </sortPom>
+          </pom>
+
+        </configuration>
+        <executions>
+          <execution>
+            <id>spotless-check</id>
+            <goals>
+              <goal>check</goal>
+            </goals>
+            <phase>verify</phase>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- Unit test execution -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>${maven.surefire.version}</version>
+        <configuration>
+          <forkCount>1</forkCount>
+          <reuseForks>true</reuseForks>
+
+          <!-- Keep JaCoCo's ${argLine} and add JDK 21+ Mockito flag -->
+          <argLine>${argLine} -XX:+EnableDynamicAgentLoading</argLine>
+        </configuration>
+      </plugin>
+
+      <!-- Code coverage (JaCoCo) -->
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <version>0.8.14</version>
+        <executions>
+          <execution>
+            <id>prepare-agent</id>
+            <goals>
+              <goal>prepare-agent</goal>
+            </goals>
+            <configuration>
+              <!-- Write JaCoCo agent args into ${argLine} -->
+              <propertyName>argLine</propertyName>
+              <destFile>${project.build.directory}/jacoco.exec</destFile>
+            </configuration>
+          </execution>
+
+          <execution>
+            <id>report</id>
+            <goals>
+              <goal>report</goal>
+            </goals>
+            <phase>test</phase>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- Spring Boot build & run support -->
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
 
 </project>

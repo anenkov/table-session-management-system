@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import com.nenkov.bar.domain.exceptions.IllegalDomainStateException;
 import com.nenkov.bar.domain.model.money.Money;
 import com.nenkov.bar.domain.model.session.OrderItemId;
+import com.nenkov.bar.domain.model.session.TableSessionId;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,7 +16,8 @@ import org.junit.jupiter.api.Test;
 class CheckTest {
 
   @Test
-  void create_success_setsCreatedStatus_andCopiesPaidItems() {
+  void create_success_setsSessionId_setsCreatedStatus_andCopiesPaidItems() {
+    TableSessionId sessionId = TableSessionId.of("session-1");
     CheckId id = CheckId.of(UUID.randomUUID());
     Instant createdAt = Instant.parse("2026-01-31T10:00:00Z");
 
@@ -26,8 +28,9 @@ class CheckTest {
     List<PaidItem> original = new ArrayList<>();
     original.add(item);
 
-    Check check = Check.create(id, money("USD", "5.00"), original, createdAt);
+    Check check = Check.create(sessionId, id, money("USD", "5.00"), original, createdAt);
 
+    assertEquals(sessionId, check.sessionId());
     assertEquals(id, check.id());
     assertEquals(CheckStatus.CREATED, check.status());
     assertEquals(createdAt, check.createdAt());
@@ -41,7 +44,41 @@ class CheckTest {
   }
 
   @Test
+  void sessionId_mustNotBeNull() {
+    Instant createdAt = Instant.parse("2026-01-31T10:00:00Z");
+
+    PaidItem item =
+        PaidItem.of(
+            OrderItemId.of(UUID.randomUUID()), 1, money("USD", "5.00"), money("USD", "5.00"));
+
+    Money amount = money("USD", "5.00");
+    List<PaidItem> items = List.of(item);
+
+    NullPointerException ex =
+        assertThrows(
+            NullPointerException.class, () -> Check.createNew(null, amount, items, createdAt));
+
+    assertTrue(ex.getMessage().toLowerCase().contains("sessionid"));
+  }
+
+  @Test
+  void create_requiresSessionId() {
+    CheckId id = CheckId.of(UUID.randomUUID());
+    Instant createdAt = Instant.parse("2026-01-31T10:00:00Z");
+
+    PaidItem item =
+        PaidItem.of(
+            OrderItemId.of(UUID.randomUUID()), 1, money("USD", "5.00"), money("USD", "5.00"));
+    Money amount = money("USD", "5.00");
+    List<PaidItem> items = List.of(item);
+
+    assertThrows(
+        NullPointerException.class, () -> Check.create(null, id, amount, items, createdAt));
+  }
+
+  @Test
   void amount_mustBeGreaterThanZero() {
+    TableSessionId sessionId = TableSessionId.of("session-1");
     Instant createdAt = Instant.parse("2026-01-31T10:00:00Z");
 
     PaidItem item =
@@ -53,26 +90,30 @@ class CheckTest {
 
     IllegalArgumentException ex =
         assertThrows(
-            IllegalArgumentException.class, () -> Check.createNew(zeroMoney, items, createdAt));
+            IllegalArgumentException.class,
+            () -> Check.createNew(sessionId, zeroMoney, items, createdAt));
 
     assertTrue(ex.getMessage().toLowerCase().contains("greater than zero"));
   }
 
   @Test
   void paidItems_mustNotBeEmpty() {
+    TableSessionId sessionId = TableSessionId.of("session-1");
     Instant createdAt = Instant.parse("2026-01-31T10:00:00Z");
     Money amount = money("USD", "1.00");
     List<PaidItem> items = List.of();
 
     IllegalArgumentException ex =
         assertThrows(
-            IllegalArgumentException.class, () -> Check.createNew(amount, items, createdAt));
+            IllegalArgumentException.class,
+            () -> Check.createNew(sessionId, amount, items, createdAt));
 
     assertTrue(ex.getMessage().toLowerCase().contains("paiditems"));
   }
 
   @Test
   void currency_mismatch_betweenCheckAndItems_rejected() {
+    TableSessionId sessionId = TableSessionId.of("session-1");
     Instant createdAt = Instant.parse("2026-01-31T10:00:00Z");
 
     PaidItem item =
@@ -84,7 +125,8 @@ class CheckTest {
 
     IllegalArgumentException ex =
         assertThrows(
-            IllegalArgumentException.class, () -> Check.createNew(amount, items, createdAt));
+            IllegalArgumentException.class,
+            () -> Check.createNew(sessionId, amount, items, createdAt));
 
     assertTrue(ex.getMessage().toLowerCase().contains("currency mismatch"));
   }
@@ -136,10 +178,12 @@ class CheckTest {
   }
 
   private static Check newCreatedCheck(Instant createdAt) {
+    TableSessionId sessionId = TableSessionId.of("session-1");
+
     PaidItem item =
         PaidItem.of(
             OrderItemId.of(UUID.randomUUID()), 1, money("USD", "5.00"), money("USD", "5.00"));
 
-    return Check.createNew(money("USD", "5.00"), List.of(item), createdAt);
+    return Check.createNew(sessionId, money("USD", "5.00"), List.of(item), createdAt);
   }
 }
