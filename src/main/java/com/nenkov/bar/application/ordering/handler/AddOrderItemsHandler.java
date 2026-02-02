@@ -13,7 +13,11 @@ import java.util.Objects;
  */
 public final class AddOrderItemsHandler {
 
-  public AddOrderItemsHandler() {}
+  public AddOrderItemsHandler() {
+    // Intentionally empty.
+    // This handler is a compile-safe skeleton with no dependencies yet.
+    // Workflow logic will be added in a later application phase.
+  }
 
   public AddOrderItemsResult handle(AddOrderItemsInput input) {
     Objects.requireNonNull(input, "input must not be null");

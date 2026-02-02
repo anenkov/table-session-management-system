@@ -177,13 +177,13 @@ final class RecordPaymentAttemptHandlerTest {
     PaymentRequestId requestId = PaymentRequestId.of("req-4");
     TableSessionId sessionId = TableSessionId.of("S-1");
     CheckId checkId = CheckId.of(UUID.randomUUID());
+    RecordPaymentAttemptInput input = new RecordPaymentAttemptInput(requestId, sessionId, checkId);
 
     when(checkRepository.findById(checkId)).thenReturn(Optional.empty());
 
     Throwable thrown =
         org.junit.jupiter.api.Assertions.assertThrows(
-            CheckNotFoundException.class,
-            () -> handler.handle(new RecordPaymentAttemptInput(requestId, sessionId, checkId)));
+            CheckNotFoundException.class, () -> handler.handle(input));
 
     assertThat(thrown.getMessage()).contains("Check not found: " + checkId.value());
 
