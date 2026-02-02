@@ -1,5 +1,6 @@
 package com.nenkov.bar.application.payment.repository;
 
+import com.nenkov.bar.application.common.persistence.RepositoryAccessException;
 import com.nenkov.bar.domain.model.payment.Check;
 import com.nenkov.bar.domain.model.payment.CheckId;
 import com.nenkov.bar.domain.model.session.TableSessionId;

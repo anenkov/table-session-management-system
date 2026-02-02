@@ -2,6 +2,7 @@ package com.nenkov.bar.domain.model.payment;
 
 import com.nenkov.bar.domain.exceptions.IllegalDomainStateException;
 import com.nenkov.bar.domain.model.money.Money;
+import com.nenkov.bar.domain.model.session.TableSessionId;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
@@ -18,6 +19,7 @@ import java.util.Objects;
  * <p>Invariants:
  *
  * <ul>
+ *   <li>{@code sessionId} is non-null
  *   <li>{@code id} is non-null
  *   <li>{@code amount} is non-null and strictly greater than zero
  *   <li>{@code paidItems} is non-null and non-empty
@@ -28,6 +30,7 @@ import java.util.Objects;
  */
 public final class Check {
 
+  private final TableSessionId sessionId;
   private final CheckId id;
   private final Money amount;
   private final List<PaidItem> paidItems;
@@ -39,7 +42,13 @@ public final class Check {
 
   private static final String COMPLETED_AT_ERROR_MSG = "completedAt must not be null";
 
-  private Check(CheckId id, Money amount, List<PaidItem> paidItems, Instant createdAt) {
+  private Check(
+      TableSessionId sessionId,
+      CheckId id,
+      Money amount,
+      List<PaidItem> paidItems,
+      Instant createdAt) {
+    this.sessionId = Objects.requireNonNull(sessionId, "sessionId must not be null");
     this.id = Objects.requireNonNull(id, "id must not be null");
     this.amount = Objects.requireNonNull(amount, "amount must not be null");
     this.paidItems = List.copyOf(Objects.requireNonNull(paidItems, "paidItems must not be null"));
@@ -61,6 +70,7 @@ public final class Check {
   /**
    * Creates a new {@code Check} with a provided id.
    *
+   * @param sessionId owning session id (non-null)
    * @param id non-null check id
    * @param amount strictly positive total amount charged
    * @param paidItems non-empty allocation snapshot
@@ -68,20 +78,31 @@ public final class Check {
    * @return a new {@code Check} in status {@link CheckStatus#CREATED}
    */
   public static Check create(
-      CheckId id, Money amount, List<PaidItem> paidItems, Instant createdAt) {
-    return new Check(id, amount, paidItems, createdAt);
+      TableSessionId sessionId,
+      CheckId id,
+      Money amount,
+      List<PaidItem> paidItems,
+      Instant createdAt) {
+    return new Check(sessionId, id, amount, paidItems, createdAt);
   }
 
   /**
    * Creates a new {@code Check} with a generated id.
    *
+   * @param sessionId owning session id (non-null)
    * @param amount strictly positive total amount charged
    * @param paidItems non-empty allocation snapshot
    * @param createdAt non-null creation timestamp
    * @return a new {@code Check} in status {@link CheckStatus#CREATED}
    */
-  public static Check createNew(Money amount, List<PaidItem> paidItems, Instant createdAt) {
-    return new Check(CheckId.random(), amount, paidItems, createdAt);
+  public static Check createNew(
+      TableSessionId sessionId, Money amount, List<PaidItem> paidItems, Instant createdAt) {
+    return new Check(sessionId, CheckId.random(), amount, paidItems, createdAt);
+  }
+
+  /** Returns the owning session id. */
+  public TableSessionId sessionId() {
+    return sessionId;
   }
 
   /** Returns the check id. */

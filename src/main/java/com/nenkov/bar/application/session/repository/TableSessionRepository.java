@@ -1,5 +1,6 @@
 package com.nenkov.bar.application.session.repository;
 
+import com.nenkov.bar.application.common.persistence.RepositoryAccessException;
 import com.nenkov.bar.domain.model.session.TableSession;
 import com.nenkov.bar.domain.model.session.TableSessionId;
 import java.util.Optional;
