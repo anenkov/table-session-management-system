@@ -11,12 +11,20 @@ import com.nenkov.bar.application.session.model.CloseTableSessionInput;
 import com.nenkov.bar.application.session.model.CloseTableSessionResult;
 import com.nenkov.bar.application.session.repository.TableSessionRepository;
 import com.nenkov.bar.domain.exceptions.IllegalDomainStateException;
+import com.nenkov.bar.domain.model.money.Money;
+import com.nenkov.bar.domain.model.session.OrderItem;
+import com.nenkov.bar.domain.model.session.OrderItemId;
+import com.nenkov.bar.domain.model.session.OrderItemStatus;
 import com.nenkov.bar.domain.model.session.TableSession;
 import com.nenkov.bar.domain.model.session.TableSessionContents;
 import com.nenkov.bar.domain.model.session.TableSessionId;
 import com.nenkov.bar.domain.model.session.TableSessionStatus;
+import com.nenkov.bar.domain.service.payment.SessionItemSnapshot;
+import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -96,6 +104,65 @@ final class CloseTableSessionHandlerTest {
     Throwable thrown = assertThrows(IllegalDomainStateException.class, () -> handler.handle(input));
 
     assertThat(thrown.getMessage()).contains("already CLOSED");
+    verify(tableSessionRepository, never()).save(ArgumentMatchers.any());
+  }
+
+  @Test
+  void handle_whenAcceptedItemsExist_propagatesDomainRejection_andDoesNotSave() {
+    CloseTableSessionHandler handler = new CloseTableSessionHandler(tableSessionRepository);
+
+    TableSessionId id = TableSessionId.of("S-accepted");
+    OrderItem accepted =
+        new OrderItem(
+            OrderItemId.of(UUID.fromString("00000000-0000-0000-0000-000000000001")),
+            "P-1",
+            1,
+            OrderItemStatus.ACCEPTED);
+
+    TableSession open =
+        new TableSession(
+            id,
+            "EUR",
+            new TableSessionContents(List.of(), List.of(accepted), List.of(), List.of()),
+            TableSessionStatus.OPEN,
+            null);
+
+    CloseTableSessionInput input = new CloseTableSessionInput(id);
+
+    when(tableSessionRepository.findById(id)).thenReturn(Optional.of(open));
+
+    assertThrows(IllegalDomainStateException.class, () -> handler.handle(input));
+
+    verify(tableSessionRepository, never()).save(ArgumentMatchers.any());
+  }
+
+  @Test
+  void handle_whenDeliveredItemsHaveRemainingQuantity_propagatesDomainRejection_andDoesNotSave() {
+    CloseTableSessionHandler handler = new CloseTableSessionHandler(tableSessionRepository);
+
+    TableSessionId id = TableSessionId.of("S-unpaid-delivered");
+
+    OrderItemId itemId = OrderItemId.of(UUID.randomUUID());
+    OrderItem delivered = new OrderItem(itemId, "P-1", 2, OrderItemStatus.DELIVERED);
+
+    SessionItemSnapshot payableSnapshot =
+        new SessionItemSnapshot(itemId, Money.of("EUR", new BigDecimal("2.00")), 1);
+
+    TableSession open =
+        new TableSession(
+            id,
+            "EUR",
+            new TableSessionContents(
+                List.of(payableSnapshot), List.of(delivered), List.of(), List.of()),
+            TableSessionStatus.OPEN,
+            null);
+
+    CloseTableSessionInput input = new CloseTableSessionInput(id);
+
+    when(tableSessionRepository.findById(id)).thenReturn(Optional.of(open));
+
+    assertThrows(IllegalDomainStateException.class, () -> handler.handle(input));
+
     verify(tableSessionRepository, never()).save(ArgumentMatchers.any());
   }
 

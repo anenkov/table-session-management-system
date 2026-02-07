@@ -139,10 +139,25 @@ public final class TableSession {
   }
 
   /**
-   * Administrative close operation (manager-only at the application boundary).
+   * Administratively closes this session (manager-only action).
    *
-   * <p>Domain invariant at this stage: cannot close an already closed session. Close rules (e.g.
-   * ordering/payment constraints) are added later.
+   * <p><b>Business invariants enforced:</b>
+   *
+   * <ul>
+   *   <li>The session must not contain any {@link OrderItemStatus#ACCEPTED} or {@link
+   *       OrderItemStatus#IN_PROGRESS} order items.
+   *   <li>The session must not contain any {@link OrderItemStatus#DELIVERED} order items with
+   *       unpaid remainder (i.e. a payable snapshot exists and {@code remainingQuantity > 0}).
+   * </ul>
+   *
+   * <p><b>Domain consistency requirement:</b> each {@link OrderItemStatus#DELIVERED} order item
+   * must have a corresponding {@link SessionItemSnapshot} entry in {@link
+   * TableSessionContents#payableItems()}.
+   *
+   * @param closedAt the moment the session is closed (must not be null)
+   * @return a new session instance with {@link TableSessionStatus#CLOSED} status
+   * @throws IllegalDomainStateException if the session is already CLOSED or if any close invariant
+   *     is violated
    */
   public TableSession closeByManager(Instant closedAt) {
     Objects.requireNonNull(closedAt, "closedAt must not be null");
@@ -150,6 +165,45 @@ public final class TableSession {
       throw new IllegalDomainStateException("Session is already CLOSED");
     }
 
+    assertNoActiveOrderItems();
+    assertNoUnpaidDeliveredItems();
+
     return new TableSession(id, currency, contents, TableSessionStatus.CLOSED, closedAt);
+  }
+
+  private void assertNoActiveOrderItems() {
+    boolean hasActive =
+        contents.orderItems().stream()
+            .anyMatch(
+                item ->
+                    item.status() == OrderItemStatus.ACCEPTED
+                        || item.status() == OrderItemStatus.IN_PROGRESS);
+
+    if (hasActive) {
+      throw new IllegalDomainStateException(
+          "Session cannot be closed while there are ACCEPTED or IN_PROGRESS order items");
+    }
+  }
+
+  private void assertNoUnpaidDeliveredItems() {
+    // Precondition: assertNoActiveOrderItems() already passed.
+    // Given current OrderItemStatus values, all order items here must be DELIVERED.
+    for (OrderItem orderItem : contents.orderItems()) {
+      SessionItemSnapshot payableSnapshot = findPayableSnapshot(orderItem.id());
+      if (payableSnapshot.remainingQuantity() > 0) {
+        throw new IllegalDomainStateException(
+            "Session cannot be closed while there are unpaid DELIVERED order items");
+      }
+    }
+  }
+
+  private SessionItemSnapshot findPayableSnapshot(OrderItemId itemId) {
+    return contents.payableItems().stream()
+        .filter(s -> s.itemId().equals(itemId))
+        .findFirst()
+        .orElseThrow(
+            () ->
+                new IllegalDomainStateException(
+                    "Missing payable snapshot for DELIVERED order item: " + itemId));
   }
 }
