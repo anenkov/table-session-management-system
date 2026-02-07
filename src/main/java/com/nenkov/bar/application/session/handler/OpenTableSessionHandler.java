@@ -4,9 +4,9 @@ import com.nenkov.bar.application.session.model.OpenTableSessionInput;
 import com.nenkov.bar.application.session.model.OpenTableSessionResult;
 import com.nenkov.bar.application.session.repository.TableSessionRepository;
 import com.nenkov.bar.domain.model.session.TableSession;
+import com.nenkov.bar.domain.model.session.TableSessionContents;
 import com.nenkov.bar.domain.model.session.TableSessionId;
 import com.nenkov.bar.domain.model.session.TableSessionStatus;
-import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -45,9 +45,7 @@ public final class OpenTableSessionHandler {
         new TableSession(
             sessionId,
             CURRENCY,
-            List.of(), // payable items snapshot (empty at session open)
-            List.of(), // item write-offs (none at session open)
-            List.of(), // session write-offs (none at session open)
+            TableSessionContents.empty(), // session write-offs (none at session open)
             TableSessionStatus.OPEN,
             null // closedAt
             );

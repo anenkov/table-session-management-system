@@ -1,47 +1,84 @@
 package com.nenkov.bar.application.ordering.handler;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.nenkov.bar.application.ordering.model.AddOrderItemsInput;
 import com.nenkov.bar.application.ordering.model.AddOrderItemsResult;
+import com.nenkov.bar.application.session.exception.TableSessionNotFoundException;
+import com.nenkov.bar.application.session.repository.TableSessionRepository;
+import com.nenkov.bar.domain.model.session.TableSession;
+import com.nenkov.bar.domain.model.session.TableSessionContents;
+import com.nenkov.bar.domain.model.session.TableSessionId;
+import com.nenkov.bar.domain.model.session.TableSessionStatus;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 
 final class AddOrderItemsHandlerTest {
 
   @Test
   void handle_nullInput_throwsNpe() {
-    AddOrderItemsHandler handler = new AddOrderItemsHandler();
+    TableSessionRepository repository = Mockito.mock(TableSessionRepository.class);
+    AddOrderItemsHandler handler = new AddOrderItemsHandler(repository);
 
-    Throwable thrown =
-        org.junit.jupiter.api.Assertions.assertThrows(
-            NullPointerException.class, () -> handler.handle(null));
+    Throwable thrown = assertThrows(NullPointerException.class, () -> handler.handle(null));
 
     assertThat(thrown.getMessage()).contains("input must not be null");
   }
 
   @Test
-  void handle_nonNullInput_throwsUnsupportedOperationException() {
-    AddOrderItemsHandler handler = new AddOrderItemsHandler();
+  void handle_sessionNotFound_throwsTableSessionNotFoundException() {
+    TableSessionRepository repository = Mockito.mock(TableSessionRepository.class);
+    AddOrderItemsHandler handler = new AddOrderItemsHandler(repository);
+
+    TableSessionId sessionId = TableSessionId.of("S-404");
+    when(repository.findById(sessionId)).thenReturn(Optional.empty());
 
     AddOrderItemsInput input =
-        new AddOrderItemsInput("S-1", List.of(new AddOrderItemsInput.RequestedItem("P-1", 1)));
+        new AddOrderItemsInput("S-404", List.of(new AddOrderItemsInput.RequestedItem("P-1", 1)));
 
-    Throwable thrown =
-        org.junit.jupiter.api.Assertions.assertThrows(
-            UnsupportedOperationException.class, () -> handler.handle(input));
-
-    assertThat(thrown.getMessage()).contains("AddOrderItemsHandler not implemented yet");
+    assertThrows(TableSessionNotFoundException.class, () -> handler.handle(input));
   }
 
   @Test
-  void placeholderResult_echoesSessionId_andReturnsEmptyCreatedIds() {
-    AddOrderItemsInput input =
-        new AddOrderItemsInput("S-1", List.of(new AddOrderItemsInput.RequestedItem("P-1", 1)));
+  void handle_addsItems_savesUpdatedSession_andReturnsCreatedIdsAsStrings() {
+    TableSessionRepository repository = Mockito.mock(TableSessionRepository.class);
+    AddOrderItemsHandler handler = new AddOrderItemsHandler(repository);
 
-    AddOrderItemsResult result = AddOrderItemsHandler.placeholderResult(input);
+    TableSessionId sessionId = TableSessionId.of("S-1");
+    TableSession session =
+        new TableSession(
+            sessionId, "EUR", TableSessionContents.empty(), TableSessionStatus.OPEN, null);
+
+    when(repository.findById(sessionId)).thenReturn(Optional.of(session));
+
+    AddOrderItemsInput input =
+        new AddOrderItemsInput(
+            "S-1",
+            List.of(
+                new AddOrderItemsInput.RequestedItem("P-1", 2),
+                new AddOrderItemsInput.RequestedItem("P-2", 1)));
+
+    AddOrderItemsResult result = handler.handle(input);
 
     assertThat(result.sessionId()).isEqualTo("S-1");
-    assertThat(result.createdItemIds()).isEmpty();
+    assertThat(result.createdItemIds()).hasSize(2);
+    assertThat(result.createdItemIds()).allMatch(id -> !id.isBlank());
+
+    ArgumentCaptor<TableSession> savedCaptor = ArgumentCaptor.forClass(TableSession.class);
+    verify(repository).save(savedCaptor.capture());
+
+    TableSession saved = savedCaptor.getValue();
+    assertThat(saved.orderItems()).hasSize(2);
+
+    List<String> savedIds =
+        saved.orderItems().stream().map(oi -> oi.id().value().toString()).toList();
+
+    assertThat(result.createdItemIds()).containsExactlyInAnyOrderElementsOf(savedIds);
   }
 }

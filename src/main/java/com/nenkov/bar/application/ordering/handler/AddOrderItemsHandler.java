@@ -2,34 +2,49 @@ package com.nenkov.bar.application.ordering.handler;
 
 import com.nenkov.bar.application.ordering.model.AddOrderItemsInput;
 import com.nenkov.bar.application.ordering.model.AddOrderItemsResult;
+import com.nenkov.bar.application.session.exception.TableSessionNotFoundException;
+import com.nenkov.bar.application.session.repository.TableSessionRepository;
+import com.nenkov.bar.domain.model.session.OrderItemDraft;
+import com.nenkov.bar.domain.model.session.OrderItemsAdded;
+import com.nenkov.bar.domain.model.session.TableSession;
+import com.nenkov.bar.domain.model.session.TableSessionId;
 import java.util.List;
 import java.util.Objects;
 
 /**
  * Workflow handler: add items to an existing table session.
  *
- * <p>Orchestrates domain + repositories once the ordering aggregate model is introduced. For Phase
- * 3.2.2 we keep this as a compile-safe skeleton.
+ * <p>Orchestrates repository + domain mutation. No framework annotations.
  */
 public final class AddOrderItemsHandler {
 
-  public AddOrderItemsHandler() {
-    // Intentionally empty.
-    // This handler is a compile-safe skeleton with no dependencies yet.
-    // Workflow logic will be added in a later application phase.
+  private final TableSessionRepository tableSessionRepository;
+
+  public AddOrderItemsHandler(TableSessionRepository tableSessionRepository) {
+    this.tableSessionRepository =
+        Objects.requireNonNull(tableSessionRepository, "tableSessionRepository must not be null");
   }
 
   public AddOrderItemsResult handle(AddOrderItemsInput input) {
     Objects.requireNonNull(input, "input must not be null");
 
-    // Domain ordering model + persistence is not wired yet in 3.2.2.
-    // This will be implemented once the session aggregate contains order items and can be saved.
-    throw new UnsupportedOperationException(
-        "AddOrderItemsHandler not implemented yet (future 3.2.x/3.3)");
-  }
+    TableSessionId sessionId = TableSessionId.of(input.sessionId());
 
-  static AddOrderItemsResult placeholderResult(AddOrderItemsInput input) {
-    // Keep the method for temporary compile/testing convenience if needed later.
-    return new AddOrderItemsResult(input.sessionId(), List.of());
+    TableSession session =
+        tableSessionRepository
+            .findById(sessionId)
+            .orElseThrow(() -> new TableSessionNotFoundException(sessionId));
+
+    List<OrderItemDraft> drafts =
+        input.items().stream().map(i -> new OrderItemDraft(i.productId(), i.quantity())).toList();
+
+    OrderItemsAdded added = session.addOrderItems(drafts);
+
+    tableSessionRepository.save(added.session());
+
+    List<String> createdItemIds =
+        added.createdOrderItemIds().stream().map(id -> id.value().toString()).toList();
+
+    return new AddOrderItemsResult(input.sessionId(), createdItemIds);
   }
 }

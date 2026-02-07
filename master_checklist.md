@@ -86,7 +86,7 @@
 - 3.2.3 Partial payment use cases
 - 3.2.4 Closing and cancellation rules
 
-**Status:** ⬜ NOT STARTED
+**Status:** ⬜ IN PROGRESS
 
 ---
 

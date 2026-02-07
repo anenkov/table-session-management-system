@@ -17,10 +17,10 @@ import com.nenkov.bar.domain.model.payment.PaidItem;
 import com.nenkov.bar.domain.model.payment.PaymentSelection;
 import com.nenkov.bar.domain.model.session.OrderItemId;
 import com.nenkov.bar.domain.model.session.TableSession;
+import com.nenkov.bar.domain.model.session.TableSessionContents;
 import com.nenkov.bar.domain.model.session.TableSessionId;
 import com.nenkov.bar.domain.model.session.TableSessionStatus;
 import com.nenkov.bar.domain.service.payment.CheckAmountCalculator;
-import com.nenkov.bar.domain.service.payment.SessionItemSnapshot;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
@@ -50,17 +50,10 @@ final class CreateCheckHandlerTest {
 
     OrderItemId itemId = OrderItemId.random();
     Money unitPrice = Money.of("EUR", new BigDecimal("5.00"));
-    SessionItemSnapshot snapshot = new SessionItemSnapshot(itemId, unitPrice, 10);
 
     TableSession session =
         new TableSession(
-            sessionId,
-            "EUR",
-            List.of(snapshot),
-            List.of(),
-            List.of(),
-            TableSessionStatus.OPEN,
-            null);
+            sessionId, "EUR", TableSessionContents.empty(), TableSessionStatus.OPEN, null);
 
     List<PaymentSelection> selections = List.of(PaymentSelection.of(itemId, 2));
     CreateCheckInput input = new CreateCheckInput(sessionId, selections);
@@ -146,18 +139,10 @@ final class CreateCheckHandlerTest {
     TableSessionId sessionId = TableSessionId.of("S-1");
 
     OrderItemId itemId = OrderItemId.random();
-    Money unitPrice = Money.of("EUR", new BigDecimal("5.00"));
-    SessionItemSnapshot snapshot = new SessionItemSnapshot(itemId, unitPrice, 10);
 
     TableSession session =
         new TableSession(
-            sessionId,
-            "EUR",
-            List.of(snapshot),
-            List.of(),
-            List.of(),
-            TableSessionStatus.OPEN,
-            null);
+            sessionId, "EUR", TableSessionContents.empty(), TableSessionStatus.OPEN, null);
 
     List<PaymentSelection> selections = List.of(PaymentSelection.of(itemId, 1));
     CreateCheckInput input = new CreateCheckInput(sessionId, selections);
