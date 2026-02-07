@@ -1,12 +1,15 @@
 package com.nenkov.bar.application.payment.handler;
 
 import com.nenkov.bar.application.payment.exception.CheckNotFoundException;
+import com.nenkov.bar.application.payment.exception.PaymentRequestIdConflictException;
 import com.nenkov.bar.application.payment.gateway.PaymentGateway;
 import com.nenkov.bar.application.payment.model.PaymentAttemptResult;
 import com.nenkov.bar.application.payment.model.PaymentAttemptStatus;
 import com.nenkov.bar.application.payment.model.RecordPaymentAttemptInput;
 import com.nenkov.bar.application.payment.model.RecordPaymentAttemptResult;
+import com.nenkov.bar.application.payment.model.RecordedPaymentAttempt;
 import com.nenkov.bar.application.payment.repository.CheckRepository;
+import com.nenkov.bar.application.payment.repository.PaymentAttemptRepository;
 import com.nenkov.bar.domain.model.payment.Check;
 import com.nenkov.bar.domain.model.payment.PaymentReference;
 import java.time.Instant;
@@ -27,16 +30,40 @@ public final class RecordPaymentAttemptHandler {
 
   private final PaymentGateway paymentGateway;
   private final CheckRepository checkRepository;
+  private final PaymentAttemptRepository paymentAttemptRepository;
 
   public RecordPaymentAttemptHandler(
-      PaymentGateway paymentGateway, CheckRepository checkRepository) {
+      PaymentGateway paymentGateway,
+      CheckRepository checkRepository,
+      PaymentAttemptRepository paymentAttemptRepository) {
     this.paymentGateway = Objects.requireNonNull(paymentGateway, "paymentGateway must not be null");
     this.checkRepository =
         Objects.requireNonNull(checkRepository, "checkRepository must not be null");
+    this.paymentAttemptRepository =
+        Objects.requireNonNull(
+            paymentAttemptRepository, "paymentAttemptRepository must not be null");
   }
 
   public RecordPaymentAttemptResult handle(RecordPaymentAttemptInput input) {
     Objects.requireNonNull(input, "input must not be null");
+
+    // Idempotency: if we have already processed this request id, return the stored outcome.
+    // This prevents duplicate gateway calls and duplicate state transitions/writes.
+    RecordedPaymentAttempt existing =
+        paymentAttemptRepository.findByRequestId(input.requestId()).orElse(null);
+    if (existing != null) {
+      if (!existing.sessionId().equals(input.sessionId())
+          || !existing.checkId().equals(input.checkId())) {
+        throw new PaymentRequestIdConflictException(
+            input.requestId(),
+            existing.sessionId(),
+            existing.checkId(),
+            input.sessionId(),
+            input.checkId());
+      }
+      return new RecordPaymentAttemptResult(
+          input.requestId(), input.sessionId(), input.checkId(), existing.attemptResult());
+    }
 
     Check check =
         checkRepository
@@ -48,6 +75,9 @@ public final class RecordPaymentAttemptHandler {
             input.requestId(), input.sessionId(), input.checkId(), check.amount());
 
     applyOutcome(check, attempt);
+
+    paymentAttemptRepository.save(
+        new RecordedPaymentAttempt(input.requestId(), input.sessionId(), input.checkId(), attempt));
     return new RecordPaymentAttemptResult(
         input.requestId(), input.sessionId(), input.checkId(), attempt);
   }
