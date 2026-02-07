@@ -3,6 +3,7 @@ package com.nenkov.bar.application.session.handler;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 
+import com.nenkov.bar.application.common.config.ApplicationCurrency;
 import com.nenkov.bar.application.session.model.OpenTableSessionInput;
 import com.nenkov.bar.application.session.model.OpenTableSessionResult;
 import com.nenkov.bar.application.session.repository.TableSessionRepository;
@@ -25,7 +26,8 @@ final class OpenTableSessionHandlerTest {
 
   @Test
   void handle_persistsOpenSessionWithEurEmptyState_andReturnsIds() {
-    OpenTableSessionHandler handler = new OpenTableSessionHandler(tableSessionRepository);
+    OpenTableSessionHandler handler =
+        new OpenTableSessionHandler(tableSessionRepository, new ApplicationCurrency("EUR"));
 
     OpenTableSessionInput input = new OpenTableSessionInput("T-12");
 
@@ -54,8 +56,8 @@ final class OpenTableSessionHandlerTest {
 
   @Test
   void handle_generatesNewSessionIdEveryTime() {
-    OpenTableSessionHandler handler = new OpenTableSessionHandler(tableSessionRepository);
-
+    OpenTableSessionHandler handler =
+        new OpenTableSessionHandler(tableSessionRepository, new ApplicationCurrency("EUR"));
     handler.handle(new OpenTableSessionInput("T-1"));
     handler.handle(new OpenTableSessionInput("T-1"));
 
@@ -74,8 +76,8 @@ final class OpenTableSessionHandlerTest {
 
   @Test
   void handle_nullInput_throwsNpe() {
-    OpenTableSessionHandler handler = new OpenTableSessionHandler(tableSessionRepository);
-
+    OpenTableSessionHandler handler =
+        new OpenTableSessionHandler(tableSessionRepository, new ApplicationCurrency("EUR"));
     Throwable thrown =
         org.junit.jupiter.api.Assertions.assertThrows(
             NullPointerException.class, () -> handler.handle(null));
@@ -85,10 +87,22 @@ final class OpenTableSessionHandlerTest {
 
   @Test
   void constructor_nullRepository_throwsNpe() {
+    ApplicationCurrency applicationCurrency = new ApplicationCurrency("EUR");
     Throwable thrown =
         org.junit.jupiter.api.Assertions.assertThrows(
-            NullPointerException.class, () -> new OpenTableSessionHandler(null));
+            NullPointerException.class,
+            () -> new OpenTableSessionHandler(null, applicationCurrency));
 
     assertThat(thrown.getMessage()).contains("tableSessionRepository must not be null");
+  }
+
+  @Test
+  void constructor_nullApplicationCurrency_throwsNpe() {
+    Throwable thrown =
+        org.junit.jupiter.api.Assertions.assertThrows(
+            NullPointerException.class,
+            () -> new OpenTableSessionHandler(tableSessionRepository, null));
+
+    assertThat(thrown.getMessage()).contains("applicationCurrency must not be null");
   }
 }

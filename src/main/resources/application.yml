@@ -5,6 +5,7 @@ app:
   jwt:
     issuer: "table-session-management-system"
     ttl-seconds: 3600
+  currency: "EUR"
 
 management:
   endpoints:
