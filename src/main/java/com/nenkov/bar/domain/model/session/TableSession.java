@@ -5,26 +5,29 @@ import com.nenkov.bar.domain.model.writeoff.ItemWriteOff;
 import com.nenkov.bar.domain.model.writeoff.WriteOff;
 import com.nenkov.bar.domain.service.payment.SessionItemSnapshot;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 /**
  * Aggregate root representing a single table session (canonical tab for a table).
  *
- * <p>The {@code TableSession} is the source of truth for payable state: items, remaining
- * quantities, and write-offs. Payment-related domain services consume read-only snapshots exposed
- * by this aggregate.
+ * <p>The {@code TableSession} owns ordering state and payable state. Payment calculation uses
+ * read-only snapshots exposed by this aggregate.
  *
- * <p>Lifecycle is introduced minimally to enable application orchestration of administrative close.
- * Domain rules for when close is allowed are added in later phases.
+ * <p>Ordering model (3.2.2.2) is minimal and supports only adding order items:
+ *
+ * <ul>
+ *   <li>Identity: {@link OrderItemId}
+ *   <li>Quantity
+ *   <li>Status: {@link OrderItemStatus}
+ * </ul>
  */
 public final class TableSession {
 
   private final TableSessionId id;
   private final String currency;
-  private final List<SessionItemSnapshot> payableItems;
-  private final List<ItemWriteOff> itemWriteOffs;
-  private final List<WriteOff> sessionWriteOffs;
+  private final TableSessionContents contents;
 
   private final TableSessionStatus status;
   private final Instant closedAt;
@@ -32,20 +35,13 @@ public final class TableSession {
   public TableSession(
       TableSessionId id,
       String currency,
-      List<SessionItemSnapshot> payableItems,
-      List<ItemWriteOff> itemWriteOffs,
-      List<WriteOff> sessionWriteOffs,
+      TableSessionContents contents,
       TableSessionStatus status,
       Instant closedAt) {
 
     this.id = Objects.requireNonNull(id, "id must not be null");
     this.currency = Objects.requireNonNull(currency, "currency must not be null");
-    this.payableItems =
-        List.copyOf(Objects.requireNonNull(payableItems, "payableItems must not be null"));
-    this.itemWriteOffs =
-        List.copyOf(Objects.requireNonNull(itemWriteOffs, "itemWriteOffs must not be null"));
-    this.sessionWriteOffs =
-        List.copyOf(Objects.requireNonNull(sessionWriteOffs, "sessionWriteOffs must not be null"));
+    this.contents = Objects.requireNonNull(contents, "contents must not be null");
 
     this.status = Objects.requireNonNull(status, "status must not be null");
     this.closedAt = closedAt;
@@ -58,58 +54,95 @@ public final class TableSession {
     }
   }
 
-  /** Returns the session identifier. */
   public TableSessionId id() {
     return id;
   }
 
-  /** Returns the session currency (single-currency model). */
   public String currency() {
     return currency;
   }
 
-  /** Returns the session lifecycle status. */
   public TableSessionStatus status() {
     return status;
   }
 
-  /** Returns the closure timestamp if the session is closed, otherwise {@code null}. */
   public Instant closedAt() {
     return closedAt;
   }
 
-  /**
-   * Returns a snapshot of payable session items at the time of access.
-   *
-   * <p>This snapshot is consumed by payment calculation services.
-   */
+  /** Snapshot of payable items consumed by payment calculation services. */
   public List<SessionItemSnapshot> payableItemsSnapshot() {
-    return payableItems;
+    return contents.payableItems();
+  }
+
+  /** Ordering state belonging to this session. */
+  public List<OrderItem> orderItems() {
+    return contents.orderItems();
+  }
+
+  public List<ItemWriteOff> itemWriteOffs() {
+    return contents.itemWriteOffs();
+  }
+
+  public List<WriteOff> sessionWriteOffs() {
+    return contents.sessionWriteOffs();
   }
 
   /**
-   * Returns item-scoped write-offs applied to this session.
+   * Adds new order items to this session.
    *
-   * <p>These are applied before session-level write-offs during payment calculation.
+   * <p>Invariants:
+   *
+   * <ul>
+   *   <li>{@code drafts} must be non-null and non-empty
+   *   <li>Each {@link OrderItemDraft} validates productId and quantity at construction time
+   * </ul>
+   *
+   * <p>Behavior:
+   *
+   * <ul>
+   *   <li>Generates a new {@link OrderItemId} per draft
+   *   <li>Initial status is {@link OrderItemStatus#ACCEPTED}
+   *   <li>Returns updated session plus created ids
+   * </ul>
    */
-  public List<ItemWriteOff> itemWriteOffs() {
-    return itemWriteOffs;
-  }
+  public OrderItemsAdded addOrderItems(List<OrderItemDraft> drafts) {
+    Objects.requireNonNull(drafts, "drafts must not be null");
+    if (drafts.isEmpty()) {
+      throw new IllegalArgumentException("drafts must not be empty");
+    }
 
-  /** Returns session-level write-offs applied proportionally across payable items. */
-  public List<WriteOff> sessionWriteOffs() {
-    return sessionWriteOffs;
+    List<OrderItem> newItems = new ArrayList<>();
+    List<OrderItemId> createdIds = new ArrayList<>();
+
+    for (OrderItemDraft draft : drafts) {
+      OrderItemId orderItemId = OrderItemId.random();
+      newItems.add(
+          new OrderItem(
+              orderItemId, draft.productId(), draft.quantity(), OrderItemStatus.ACCEPTED));
+      createdIds.add(orderItemId);
+    }
+
+    List<OrderItem> updatedOrderItems = new ArrayList<>(contents.orderItems());
+    updatedOrderItems.addAll(newItems);
+
+    TableSessionContents updatedContents =
+        new TableSessionContents(
+            contents.payableItems(),
+            updatedOrderItems,
+            contents.itemWriteOffs(),
+            contents.sessionWriteOffs());
+
+    TableSession updated = new TableSession(id, currency, updatedContents, status, closedAt);
+
+    return new OrderItemsAdded(updated, List.copyOf(createdIds));
   }
 
   /**
    * Administrative close operation (manager-only at the application boundary).
    *
-   * <p>Domain invariant at this stage: cannot close an already closed session.
-   *
-   * <p>More business rules (e.g., no in-progress items) will be added later.
-   *
-   * @param closedAt non-null closure time
-   * @return a new {@code TableSession} instance in status {@link TableSessionStatus#CLOSED}
+   * <p>Domain invariant at this stage: cannot close an already closed session. Close rules (e.g.
+   * ordering/payment constraints) are added later.
    */
   public TableSession closeByManager(Instant closedAt) {
     Objects.requireNonNull(closedAt, "closedAt must not be null");
@@ -117,13 +150,6 @@ public final class TableSession {
       throw new IllegalDomainStateException("Session is already CLOSED");
     }
 
-    return new TableSession(
-        id,
-        currency,
-        payableItems,
-        itemWriteOffs,
-        sessionWriteOffs,
-        TableSessionStatus.CLOSED,
-        closedAt);
+    return new TableSession(id, currency, contents, TableSessionStatus.CLOSED, closedAt);
   }
 }

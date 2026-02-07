@@ -8,9 +8,9 @@ import com.nenkov.bar.application.session.model.GetTableSessionInput;
 import com.nenkov.bar.application.session.model.GetTableSessionResult;
 import com.nenkov.bar.application.session.repository.TableSessionRepository;
 import com.nenkov.bar.domain.model.session.TableSession;
+import com.nenkov.bar.domain.model.session.TableSessionContents;
 import com.nenkov.bar.domain.model.session.TableSessionId;
 import com.nenkov.bar.domain.model.session.TableSessionStatus;
-import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,7 +28,7 @@ final class GetTableSessionHandlerTest {
 
     TableSessionId id = TableSessionId.of("S-1");
     TableSession session =
-        new TableSession(id, "EUR", List.of(), List.of(), List.of(), TableSessionStatus.OPEN, null);
+        new TableSession(id, "EUR", TableSessionContents.empty(), TableSessionStatus.OPEN, null);
 
     when(tableSessionRepository.findById(id)).thenReturn(Optional.of(session));
 

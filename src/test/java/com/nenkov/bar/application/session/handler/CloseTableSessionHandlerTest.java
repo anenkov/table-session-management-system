@@ -12,10 +12,10 @@ import com.nenkov.bar.application.session.model.CloseTableSessionResult;
 import com.nenkov.bar.application.session.repository.TableSessionRepository;
 import com.nenkov.bar.domain.exceptions.IllegalDomainStateException;
 import com.nenkov.bar.domain.model.session.TableSession;
+import com.nenkov.bar.domain.model.session.TableSessionContents;
 import com.nenkov.bar.domain.model.session.TableSessionId;
 import com.nenkov.bar.domain.model.session.TableSessionStatus;
 import java.time.Instant;
-import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,7 +38,7 @@ final class CloseTableSessionHandlerTest {
 
     TableSessionId id = TableSessionId.of("S-1");
     TableSession open =
-        new TableSession(id, "EUR", List.of(), List.of(), List.of(), TableSessionStatus.OPEN, null);
+        new TableSession(id, "EUR", TableSessionContents.empty(), TableSessionStatus.OPEN, null);
 
     when(tableSessionRepository.findById(id)).thenReturn(Optional.of(open));
 
@@ -86,9 +86,7 @@ final class CloseTableSessionHandlerTest {
         new TableSession(
             id,
             "EUR",
-            List.of(),
-            List.of(),
-            List.of(),
+            TableSessionContents.empty(),
             TableSessionStatus.CLOSED,
             Instant.parse("2026-01-01T00:00:00Z"));
     CloseTableSessionInput input = new CloseTableSessionInput(id);

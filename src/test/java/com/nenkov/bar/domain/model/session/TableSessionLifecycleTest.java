@@ -3,11 +3,7 @@ package com.nenkov.bar.domain.model.session;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.nenkov.bar.domain.exceptions.IllegalDomainStateException;
-import com.nenkov.bar.domain.model.writeoff.ItemWriteOff;
-import com.nenkov.bar.domain.model.writeoff.WriteOff;
-import com.nenkov.bar.domain.service.payment.SessionItemSnapshot;
 import java.time.Instant;
-import java.util.List;
 import org.junit.jupiter.api.Test;
 
 final class TableSessionLifecycleTest {
@@ -15,23 +11,13 @@ final class TableSessionLifecycleTest {
   @Test
   void constructor_open_requiresClosedAtNull() {
     TableSessionId id = TableSessionId.of("S-1");
-    List<SessionItemSnapshot> snapshots = List.of();
-    List<ItemWriteOff> itemWriteOffs = List.of();
-    List<WriteOff> writeOffs = List.of();
     Instant closedAt = Instant.parse("2026-01-01T00:00:00Z");
+    TableSessionContents contents = TableSessionContents.empty();
 
     Throwable thrown =
         org.junit.jupiter.api.Assertions.assertThrows(
             IllegalArgumentException.class,
-            () ->
-                new TableSession(
-                    id,
-                    "EUR",
-                    snapshots,
-                    itemWriteOffs,
-                    writeOffs,
-                    TableSessionStatus.OPEN,
-                    closedAt));
+            () -> new TableSession(id, "EUR", contents, TableSessionStatus.OPEN, closedAt));
 
     assertThat(thrown.getMessage()).contains("closedAt must be null when status is OPEN");
   }
@@ -39,23 +25,12 @@ final class TableSessionLifecycleTest {
   @Test
   void constructor_closed_requiresClosedAtNonNull() {
     TableSessionId id = TableSessionId.of("S-1");
-
-    List<SessionItemSnapshot> snapshots = List.of();
-    List<ItemWriteOff> itemWriteOffs = List.of();
-    List<WriteOff> writeOffs = List.of();
+    TableSessionContents contents = TableSessionContents.empty();
 
     Throwable thrown =
         org.junit.jupiter.api.Assertions.assertThrows(
             IllegalArgumentException.class,
-            () ->
-                new TableSession(
-                    id,
-                    "EUR",
-                    snapshots,
-                    itemWriteOffs,
-                    writeOffs,
-                    TableSessionStatus.CLOSED,
-                    null));
+            () -> new TableSession(id, "EUR", contents, TableSessionStatus.CLOSED, null));
 
     assertThat(thrown.getMessage()).contains("closedAt must not be null when status is CLOSED");
   }
@@ -64,7 +39,7 @@ final class TableSessionLifecycleTest {
   void closeByManager_transitionsToClosedWithTimestamp() {
     TableSessionId id = TableSessionId.of("S-1");
     TableSession open =
-        new TableSession(id, "EUR", List.of(), List.of(), List.of(), TableSessionStatus.OPEN, null);
+        new TableSession(id, "EUR", TableSessionContents.empty(), TableSessionStatus.OPEN, null);
 
     Instant closedAt = Instant.parse("2026-01-01T00:00:00Z");
     TableSession closed = open.closeByManager(closedAt);
@@ -79,7 +54,7 @@ final class TableSessionLifecycleTest {
   void closeByManager_nullClosedAt_throwsNpe() {
     TableSessionId id = TableSessionId.of("S-1");
     TableSession open =
-        new TableSession(id, "EUR", List.of(), List.of(), List.of(), TableSessionStatus.OPEN, null);
+        new TableSession(id, "EUR", TableSessionContents.empty(), TableSessionStatus.OPEN, null);
 
     Throwable thrown =
         org.junit.jupiter.api.Assertions.assertThrows(
@@ -95,9 +70,7 @@ final class TableSessionLifecycleTest {
         new TableSession(
             id,
             "EUR",
-            List.of(),
-            List.of(),
-            List.of(),
+            TableSessionContents.empty(),
             TableSessionStatus.CLOSED,
             Instant.parse("2026-01-01T00:00:00Z"));
 
