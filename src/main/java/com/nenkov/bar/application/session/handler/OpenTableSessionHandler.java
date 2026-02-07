@@ -1,5 +1,6 @@
 package com.nenkov.bar.application.session.handler;
 
+import com.nenkov.bar.application.common.config.ApplicationCurrency;
 import com.nenkov.bar.application.session.model.OpenTableSessionInput;
 import com.nenkov.bar.application.session.model.OpenTableSessionResult;
 import com.nenkov.bar.application.session.repository.TableSessionRepository;
@@ -25,15 +26,16 @@ import java.util.UUID;
  */
 public final class OpenTableSessionHandler {
 
-  // Single configured currency for the whole application.
-  // Later this can come from application configuration (without changing domain).
-  private static final String CURRENCY = "EUR";
-
   private final TableSessionRepository tableSessionRepository;
+  private final ApplicationCurrency applicationCurrency;
 
-  public OpenTableSessionHandler(TableSessionRepository tableSessionRepository) {
+  public OpenTableSessionHandler(
+      TableSessionRepository tableSessionRepository, ApplicationCurrency applicationCurrency) {
+
     this.tableSessionRepository =
         Objects.requireNonNull(tableSessionRepository, "tableSessionRepository must not be null");
+    this.applicationCurrency =
+        Objects.requireNonNull(applicationCurrency, "applicationCurrency must not be null");
   }
 
   public OpenTableSessionResult handle(OpenTableSessionInput input) {
@@ -44,7 +46,7 @@ public final class OpenTableSessionHandler {
     TableSession session =
         new TableSession(
             sessionId,
-            CURRENCY,
+            applicationCurrency.code(),
             TableSessionContents.empty(), // session write-offs (none at session open)
             TableSessionStatus.OPEN,
             null // closedAt

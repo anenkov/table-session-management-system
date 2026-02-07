@@ -3,6 +3,7 @@ app:
     issuer: "https://table-session-management-system.test"
     ttl-seconds: 60
     secret: "test-only-secret-do-not-use-in-prod-1234567890"
+  currency: "EUR"
 
 spring:
   main:
