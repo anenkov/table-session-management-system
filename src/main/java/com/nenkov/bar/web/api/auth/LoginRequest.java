@@ -1,4 +1,4 @@
-package com.nenkov.bar.auth.api;
+package com.nenkov.bar.web.api.auth;
 
 import jakarta.validation.constraints.NotBlank;
 

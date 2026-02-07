@@ -1,9 +1,9 @@
 package com.nenkov.bar.auth;
 
-import com.nenkov.bar.auth.api.LoginResponse;
 import com.nenkov.bar.auth.jwt.JwtService;
 import com.nenkov.bar.user.UserEntity;
 import com.nenkov.bar.user.UserRepository;
+import com.nenkov.bar.web.api.auth.LoginResponse;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;

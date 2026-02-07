@@ -1,0 +1,39 @@
+package com.nenkov.bar.web.api.common;
+
+import java.net.URI;
+import org.springframework.http.HttpStatus;
+
+/**
+ * Stable, machine-readable API problem codes, mapped to RFC7807 Problem Details.
+ *
+ * <p>Note: {@link #typeUri()} uses URNs to avoid coupling to a hosted URL.
+ */
+public enum ApiProblemCode {
+  VALIDATION_FAILED(HttpStatus.BAD_REQUEST, "Validation failed", "urn:problem:validation-failed"),
+  AUTH_INVALID_CREDENTIALS(
+      HttpStatus.UNAUTHORIZED, "Invalid credentials", "urn:problem:auth-invalid-credentials"),
+  INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Internal error", "urn:problem:internal-error"),
+  RESPONSE_STATUS(HttpStatus.BAD_REQUEST, "Request failed", "urn:problem:response-status");
+
+  private final HttpStatus status;
+  private final String title;
+  private final URI typeUri;
+
+  ApiProblemCode(HttpStatus status, String title, String type) {
+    this.status = status;
+    this.title = title;
+    this.typeUri = URI.create(type);
+  }
+
+  public HttpStatus status() {
+    return status;
+  }
+
+  public String title() {
+    return title;
+  }
+
+  public URI typeUri() {
+    return typeUri;
+  }
+}
