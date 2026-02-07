@@ -27,6 +27,17 @@ public interface TableSessionRepository {
   Optional<TableSession> findById(TableSessionId sessionId);
 
   /**
+   * Checks whether there is an OPEN session for the given application-level table id.
+   *
+   * <p>Note: TableId is not yet part of the domain model, so this query is application-driven.
+   *
+   * @param tableId application-level table id (non-null, non-blank)
+   * @return true if an OPEN session exists for the table
+   * @throws RepositoryAccessException on technical/persistence failures
+   */
+  boolean existsOpenByTableId(String tableId);
+
+  /**
    * Persists the given {@link TableSession}.
    *
    * <p>Semantics: upsert (create or update).

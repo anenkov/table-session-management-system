@@ -1,6 +1,7 @@
 package com.nenkov.bar.application.session.handler;
 
 import com.nenkov.bar.application.common.config.ApplicationCurrency;
+import com.nenkov.bar.application.session.exception.TableAlreadyHasOpenSessionException;
 import com.nenkov.bar.application.session.model.OpenTableSessionInput;
 import com.nenkov.bar.application.session.model.OpenTableSessionResult;
 import com.nenkov.bar.application.session.repository.TableSessionRepository;
@@ -16,12 +17,10 @@ import java.util.UUID;
  *
  * <p>Orchestrates domain and repository only. Domain rules must remain in the domain.
  *
- * <p>Current limitation (intentional for skeleton stage):
+ * <p>Current limitation:
  *
  * <ul>
  *   <li>Domain does not yet model TableId, so {@code input.tableId()} is application metadata only.
- *   <li>The locked {@link TableSessionRepository} supports lookup by {@link TableSessionId} only,
- *       so this handler cannot enforce "one open session per table" at this layer.
  * </ul>
  */
 public final class OpenTableSessionHandler {
@@ -40,6 +39,11 @@ public final class OpenTableSessionHandler {
 
   public OpenTableSessionResult handle(OpenTableSessionInput input) {
     Objects.requireNonNull(input, "input must not be null");
+
+    boolean hasOpenSession = tableSessionRepository.existsOpenByTableId(input.tableId());
+    if (hasOpenSession) {
+      throw new TableAlreadyHasOpenSessionException(input.tableId());
+    }
 
     TableSessionId sessionId = TableSessionId.of(UUID.randomUUID().toString());
 
