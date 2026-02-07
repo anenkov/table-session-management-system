@@ -22,3 +22,7 @@ management:
     web:
       exposure:
         include: "health"
+
+logging:
+  level:
+    com.nenkov.bar.web.api.common.ApiExceptionHandler: OFF
