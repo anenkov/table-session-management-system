@@ -1,5 +1,7 @@
 package com.nenkov.bar.web.api.common;
 
+import com.nenkov.bar.application.session.exception.TableAlreadyHasOpenSessionException;
+import com.nenkov.bar.application.session.exception.TableSessionNotFoundException;
 import com.nenkov.bar.auth.InvalidCredentialsException;
 import java.time.Instant;
 import java.util.List;
@@ -18,14 +20,32 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.server.ServerWebExchange;
 
 /**
- * Global WebFlux exception handling producing RFC7807 Problem Details (application/problem+json).
+ * Global WebFlux exception handler producing RFC 7807 {@code ProblemDetail} responses ({@code
+ * application/problem+json}).
  *
- * <p>Conventions:
+ * <p>This class is the single, centralized mapping layer between:
  *
  * <ul>
- *   <li>ProblemDetail#type is a URN (stable)
- *   <li>Extension properties: code, timestamp, correlationId, errors (for validation)
+ *   <li>Application and infrastructure exceptions
+ *   <li>HTTP status codes
+ *   <li>Stable API error identifiers ({@link ApiProblemCode})
  * </ul>
+ *
+ * <h3>Conventions</h3>
+ *
+ * <ul>
+ *   <li>{@code ProblemDetail.type} is a stable URN
+ *   <li>Extension properties:
+ *       <ul>
+ *         <li>{@code code} – stable {@link ApiProblemCode} name or HTTP code
+ *         <li>{@code timestamp} – ISO-8601 timestamp of error creation
+ *         <li>{@code correlationId} – propagated from {@code X-Request-Id} header when present
+ *         <li>{@code errors} – validation error details (validation failures only)
+ *       </ul>
+ *   <li>Exception messages are not leaked directly to clients unless explicitly safe
+ * </ul>
+ *
+ * <p>All handlers are deterministic and side-effect free.
  */
 @RestControllerAdvice
 public class ApiExceptionHandler {
@@ -38,6 +58,15 @@ public class ApiExceptionHandler {
   private static final String PROP_ERRORS = "errors";
   private static final String HEADER_REQUEST_ID = "X-Request-Id";
 
+  /**
+   * Handles request validation failures triggered by WebFlux binding or Bean Validation.
+   *
+   * <p>Produces {@code 400 Bad Request} with a structured list of field-level violations.
+   *
+   * @param ex validation exception raised during request binding
+   * @param exchange current server exchange
+   * @return RFC7807 {@link ProblemDetail} response with validation errors
+   */
   @ExceptionHandler(WebExchangeBindException.class)
   public ResponseEntity<ProblemDetail> handleValidation(
       WebExchangeBindException ex, ServerWebExchange exchange) {
@@ -59,6 +88,16 @@ public class ApiExceptionHandler {
     return ResponseEntity.status(code.status()).body(problem);
   }
 
+  /**
+   * Handles authentication failures caused by invalid user credentials.
+   *
+   * <p>Produces {@code 401 Unauthorized}. The response detail is intentionally generic to avoid
+   * leaking authentication information.
+   *
+   * @param ignored invalid credentials exception
+   * @param exchange current server exchange
+   * @return RFC7807 {@link ProblemDetail} response
+   */
   @ExceptionHandler(InvalidCredentialsException.class)
   public ResponseEntity<ProblemDetail> handleInvalidCredentials(
       InvalidCredentialsException ignored, ServerWebExchange exchange) {
@@ -77,6 +116,73 @@ public class ApiExceptionHandler {
     return ResponseEntity.status(code.status()).body(problem);
   }
 
+  /**
+   * Handles attempts to access a table session that does not exist.
+   *
+   * <p>Produces {@code 404 Not Found}. This exception originates from the application layer and is
+   * part of the public API contract.
+   *
+   * @param ignored session-not-found exception
+   * @param exchange current server exchange
+   * @return RFC7807 {@link ProblemDetail} response
+   */
+  @ExceptionHandler(TableSessionNotFoundException.class)
+  public ResponseEntity<ProblemDetail> handleSessionNotFound(
+      TableSessionNotFoundException ignored, ServerWebExchange exchange) {
+
+    ApiProblemCode code = ApiProblemCode.SESSION_NOT_FOUND;
+
+    ProblemDetail problem = ProblemDetail.forStatus(code.status());
+    problem.setTitle(code.title());
+    problem.setType(code.typeUri());
+    problem.setDetail("Session was not found.");
+
+    problem.setProperty(PROP_CODE, code.name());
+    problem.setProperty(PROP_TIMESTAMP, Instant.now().toString());
+    correlationId(exchange).ifPresent(id -> problem.setProperty(PROP_CORRELATION_ID, id));
+
+    return ResponseEntity.status(code.status()).body(problem);
+  }
+
+  /**
+   * Handles conflicts caused by attempting to open a new session for a table that already has an
+   * active session.
+   *
+   * <p>Produces {@code 409 Conflict}. This enforces the one-open-session-per-table business rule at
+   * the API boundary.
+   *
+   * @param ignored conflict exception
+   * @param exchange current server exchange
+   * @return RFC7807 {@link ProblemDetail} response
+   */
+  @ExceptionHandler(TableAlreadyHasOpenSessionException.class)
+  public ResponseEntity<ProblemDetail> handleOpenSessionConflict(
+      TableAlreadyHasOpenSessionException ignored, ServerWebExchange exchange) {
+
+    ApiProblemCode code = ApiProblemCode.SESSION_ALREADY_OPEN_FOR_TABLE;
+
+    ProblemDetail problem = ProblemDetail.forStatus(code.status());
+    problem.setTitle(code.title());
+    problem.setType(code.typeUri());
+    problem.setDetail("An open session already exists for this table.");
+
+    problem.setProperty(PROP_CODE, code.name());
+    problem.setProperty(PROP_TIMESTAMP, Instant.now().toString());
+    correlationId(exchange).ifPresent(id -> problem.setProperty(PROP_CORRELATION_ID, id));
+
+    return ResponseEntity.status(code.status()).body(problem);
+  }
+
+  /**
+   * Handles {@link ResponseStatusException} thrown explicitly by controllers or infrastructure
+   * code.
+   *
+   * <p>The HTTP status is preserved and exposed using a generic {@code HTTP_xxx} problem code.
+   *
+   * @param ex response status exception
+   * @param exchange current server exchange
+   * @return RFC7807 {@link ProblemDetail} response
+   */
   @ExceptionHandler(ResponseStatusException.class)
   public ResponseEntity<ProblemDetail> handleResponseStatus(
       ResponseStatusException ex, ServerWebExchange exchange) {
@@ -94,11 +200,20 @@ public class ApiExceptionHandler {
     return ResponseEntity.status(status).body(problem);
   }
 
+  /**
+   * Fallback handler for all uncaught exceptions.
+   *
+   * <p>Produces {@code 500 Internal Server Error}. Full details are logged server-side, while the
+   * client receives a safe, non-specific error message.
+   *
+   * @param ex unexpected exception
+   * @param exchange current server exchange
+   * @return RFC7807 {@link ProblemDetail} response
+   */
   @ExceptionHandler(Exception.class)
   public ResponseEntity<ProblemDetail> handleUnexpected(Exception ex, ServerWebExchange exchange) {
     ApiProblemCode code = ApiProblemCode.INTERNAL_ERROR;
 
-    // Log full details server-side; return safe message client-side.
     log.error("Unhandled exception", ex);
 
     ProblemDetail problem = ProblemDetail.forStatus(code.status());
@@ -113,12 +228,14 @@ public class ApiExceptionHandler {
     return ResponseEntity.status(code.status()).body(problem);
   }
 
+  /** Converts a Spring {@link FieldError} into a stable API validation error detail. */
   private static FieldViolationDetail toFieldViolation(FieldError fe) {
     String field = Objects.toString(fe.getField(), "");
     String issue = Objects.toString(fe.getDefaultMessage(), "Invalid value");
     return new FieldViolationDetail(field, issue);
   }
 
+  /** Extracts correlation ID from {@code X-Request-Id} header if present. */
   private static Optional<String> correlationId(ServerWebExchange exchange) {
     if (exchange == null) {
       return Optional.empty();
