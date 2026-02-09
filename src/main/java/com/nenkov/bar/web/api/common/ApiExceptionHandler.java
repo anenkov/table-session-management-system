@@ -1,5 +1,7 @@
 package com.nenkov.bar.web.api.common;
 
+import com.nenkov.bar.application.payment.exception.CheckCreationNotAllowedException;
+import com.nenkov.bar.application.payment.exception.InvalidPaymentSelectionException;
 import com.nenkov.bar.application.session.exception.TableAlreadyHasOpenSessionException;
 import com.nenkov.bar.application.session.exception.TableSessionNotFoundException;
 import com.nenkov.bar.auth.InvalidCredentialsException;
@@ -166,6 +168,65 @@ public class ApiExceptionHandler {
     problem.setTitle(code.title());
     problem.setType(code.typeUri());
     problem.setDetail("An open session already exists for this table.");
+
+    problem.setProperty(PROP_CODE, code.name());
+    problem.setProperty(PROP_TIMESTAMP, Instant.now().toString());
+    correlationId(exchange).ifPresent(id -> problem.setProperty(PROP_CORRELATION_ID, id));
+
+    return ResponseEntity.status(code.status()).body(problem);
+  }
+
+  // inside ApiExceptionHandler
+
+  /**
+   * Maps {@link com.nenkov.bar.application.payment.exception.CheckCreationNotAllowedException} to
+   * an RFC7807 problem response.
+   *
+   * <p>HTTP semantics: {@code 409 Conflict}. The request is well-formed, but the session state does
+   * not allow creating a check (e.g., session is CLOSED).
+   *
+   * <p>Response detail is intentionally generic (safe) and does not expose internal exception
+   * messages.
+   */
+  @ExceptionHandler(CheckCreationNotAllowedException.class)
+  public ResponseEntity<ProblemDetail> handleCheckCreationNotAllowed(
+      CheckCreationNotAllowedException ignored, ServerWebExchange exchange) {
+
+    ApiProblemCode code = ApiProblemCode.PAYMENT_CONFLICT;
+
+    ProblemDetail problem = ProblemDetail.forStatus(code.status());
+    problem.setTitle(code.title());
+    problem.setType(code.typeUri());
+    problem.setDetail("Check creation is not allowed for the current session state.");
+
+    problem.setProperty(PROP_CODE, code.name());
+    problem.setProperty(PROP_TIMESTAMP, Instant.now().toString());
+    correlationId(exchange).ifPresent(id -> problem.setProperty(PROP_CORRELATION_ID, id));
+
+    return ResponseEntity.status(code.status()).body(problem);
+  }
+
+  /**
+   * Maps {@link com.nenkov.bar.application.payment.exception.InvalidPaymentSelectionException} to
+   * an RFC7807 problem response.
+   *
+   * <p>HTTP semantics: {@code 422 Unprocessable Entity}. The request is syntactically valid but
+   * violates business rules (e.g., unknown item id, over-selected quantity, or otherwise invalid
+   * selection).
+   *
+   * <p>Response detail is intentionally generic (safe) and does not expose internal exception
+   * messages.
+   */
+  @ExceptionHandler(InvalidPaymentSelectionException.class)
+  public ResponseEntity<ProblemDetail> handleInvalidPaymentSelection(
+      InvalidPaymentSelectionException ignored, ServerWebExchange exchange) {
+
+    ApiProblemCode code = ApiProblemCode.PAYMENT_SELECTION_INVALID;
+
+    ProblemDetail problem = ProblemDetail.forStatus(code.status());
+    problem.setTitle(code.title());
+    problem.setType(code.typeUri());
+    problem.setDetail("Invalid payment selection.");
 
     problem.setProperty(PROP_CODE, code.name());
     problem.setProperty(PROP_TIMESTAMP, Instant.now().toString());

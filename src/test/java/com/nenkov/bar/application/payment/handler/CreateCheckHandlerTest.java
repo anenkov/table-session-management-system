@@ -1,10 +1,14 @@
 package com.nenkov.bar.application.payment.handler;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.nenkov.bar.application.payment.exception.CheckCreationNotAllowedException;
+import com.nenkov.bar.application.payment.exception.InvalidPaymentSelectionException;
 import com.nenkov.bar.application.payment.model.CreateCheckInput;
 import com.nenkov.bar.application.payment.model.CreateCheckResult;
 import com.nenkov.bar.application.payment.repository.CheckRepository;
@@ -115,20 +119,69 @@ final class CreateCheckHandlerTest {
     when(tableSessionRepository.findById(sessionId)).thenReturn(Optional.empty());
 
     Throwable thrown =
-        org.junit.jupiter.api.Assertions.assertThrows(
-            TableSessionNotFoundException.class, () -> handler.handle(input));
+        assertThrows(TableSessionNotFoundException.class, () -> handler.handle(input));
 
     assertThat(thrown.getMessage()).contains("TableSession not found: " + sessionId.value());
 
-    verify(checkAmountCalculator, never())
-        .quote(
-            org.mockito.ArgumentMatchers.any(),
-            org.mockito.ArgumentMatchers.any(),
-            org.mockito.ArgumentMatchers.any(),
-            org.mockito.ArgumentMatchers.any(),
-            org.mockito.ArgumentMatchers.any());
+    verify(checkAmountCalculator, never()).quote(any(), any(), any(), any(), any());
+    verify(checkRepository, never()).save(any());
+  }
 
-    verify(checkRepository, never()).save(org.mockito.ArgumentMatchers.any());
+  @Test
+  void handle_whenSessionClosed_throwsCheckCreationNotAllowed_andDoesNotQuoteOrSave() {
+    CreateCheckHandler handler =
+        new CreateCheckHandler(tableSessionRepository, checkRepository, checkAmountCalculator);
+
+    TableSessionId sessionId = TableSessionId.of("S-closed");
+    OrderItemId itemId = OrderItemId.random();
+    List<PaymentSelection> selections = List.of(PaymentSelection.of(itemId, 1));
+    CreateCheckInput input = new CreateCheckInput(sessionId, selections);
+
+    TableSession session =
+        new TableSession(
+            sessionId,
+            "EUR",
+            TableSessionContents.empty(),
+            TableSessionStatus.CLOSED,
+            Instant.parse("2026-02-09T00:00:00Z"));
+
+    when(tableSessionRepository.findById(sessionId)).thenReturn(Optional.of(session));
+
+    assertThrows(CheckCreationNotAllowedException.class, () -> handler.handle(input));
+
+    verify(checkAmountCalculator, never()).quote(any(), any(), any(), any(), any());
+    verify(checkRepository, never()).save(any());
+  }
+
+  @Test
+  void
+      handle_whenCalculatorThrowsIllegalArgumentException_mapsToInvalidPaymentSelection_andDoesNotSaveCheck() {
+    CreateCheckHandler handler =
+        new CreateCheckHandler(tableSessionRepository, checkRepository, checkAmountCalculator);
+
+    TableSessionId sessionId = TableSessionId.of("S-1");
+    OrderItemId itemId = OrderItemId.random();
+
+    TableSession session =
+        new TableSession(
+            sessionId, "EUR", TableSessionContents.empty(), TableSessionStatus.OPEN, null);
+
+    List<PaymentSelection> selections = List.of(PaymentSelection.of(itemId, 1));
+    CreateCheckInput input = new CreateCheckInput(sessionId, selections);
+
+    when(tableSessionRepository.findById(sessionId)).thenReturn(Optional.of(session));
+
+    when(checkAmountCalculator.quote(
+            "EUR",
+            session.payableItemsSnapshot(),
+            selections,
+            session.itemWriteOffs(),
+            session.sessionWriteOffs()))
+        .thenThrow(new IllegalArgumentException("invalid selection"));
+
+    assertThrows(InvalidPaymentSelectionException.class, () -> handler.handle(input));
+
+    verify(checkRepository, never()).save(any());
   }
 
   @Test
@@ -158,12 +211,10 @@ final class CreateCheckHandlerTest {
             session.sessionWriteOffs()))
         .thenThrow(boom);
 
-    Throwable thrown =
-        org.junit.jupiter.api.Assertions.assertThrows(
-            RuntimeException.class, () -> handler.handle(input));
+    Throwable thrown = assertThrows(RuntimeException.class, () -> handler.handle(input));
 
     assertThat(thrown).isSameAs(boom);
-    verify(checkRepository, never()).save(org.mockito.ArgumentMatchers.any());
+    verify(checkRepository, never()).save(any());
   }
 
   @Test
@@ -171,9 +222,7 @@ final class CreateCheckHandlerTest {
     CreateCheckHandler handler =
         new CreateCheckHandler(tableSessionRepository, checkRepository, checkAmountCalculator);
 
-    Throwable thrown =
-        org.junit.jupiter.api.Assertions.assertThrows(
-            NullPointerException.class, () -> handler.handle(null));
+    Throwable thrown = assertThrows(NullPointerException.class, () -> handler.handle(null));
 
     assertThat(thrown.getMessage()).contains("input must not be null");
   }
@@ -181,7 +230,7 @@ final class CreateCheckHandlerTest {
   @Test
   void constructor_nullSessionRepo_throwsNpe() {
     Throwable thrown =
-        org.junit.jupiter.api.Assertions.assertThrows(
+        assertThrows(
             NullPointerException.class,
             () -> new CreateCheckHandler(null, checkRepository, checkAmountCalculator));
 
@@ -191,7 +240,7 @@ final class CreateCheckHandlerTest {
   @Test
   void constructor_nullCheckRepo_throwsNpe() {
     Throwable thrown =
-        org.junit.jupiter.api.Assertions.assertThrows(
+        assertThrows(
             NullPointerException.class,
             () -> new CreateCheckHandler(tableSessionRepository, null, checkAmountCalculator));
 
@@ -201,7 +250,7 @@ final class CreateCheckHandlerTest {
   @Test
   void constructor_nullCalculator_throwsNpe() {
     Throwable thrown =
-        org.junit.jupiter.api.Assertions.assertThrows(
+        assertThrows(
             NullPointerException.class,
             () -> new CreateCheckHandler(tableSessionRepository, checkRepository, null));
 

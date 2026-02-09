@@ -19,7 +19,11 @@ public enum ApiProblemCode {
       HttpStatus.UNAUTHORIZED, "Invalid credentials", "urn:problem:auth-invalid-credentials"),
   INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Internal error", "urn:problem:internal-error"),
   RESPONSE_STATUS(HttpStatus.BAD_REQUEST, "Request failed", "urn:problem:response-status"),
-  ORDERING_CONFLICT(HttpStatus.CONFLICT, "Ordering conflict", "urn:problem:ordering-conflict");
+  ORDERING_CONFLICT(HttpStatus.CONFLICT, "Ordering conflict", "urn:problem:ordering-conflict"),
+  PAYMENT_CONFLICT(HttpStatus.CONFLICT, "Payment conflict", "urn:problem:payment-conflict"),
+  // @TODO: 422 is deprecated. Investigate fix
+  PAYMENT_SELECTION_INVALID(
+      http422(), "Invalid payment selection", "urn:problem:payment-selection-invalid");
 
   private final HttpStatus status;
   private final String title;
@@ -41,5 +45,9 @@ public enum ApiProblemCode {
 
   public URI typeUri() {
     return typeUri;
+  }
+
+  private static HttpStatus http422() {
+    return HttpStatus.valueOf(422);
   }
 }
