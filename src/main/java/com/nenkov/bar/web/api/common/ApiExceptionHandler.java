@@ -94,7 +94,7 @@ public class ApiExceptionHandler {
   private ResponseEntity<ProblemDetail> handleMappedOrFallback(
       Exception ex, ServerWebExchange exchange) {
 
-    Optional<ApiExceptionMapper<? extends Throwable>> mapperOpt = mapperRegistry.findExact(ex);
+    Optional<ApiExceptionMapper<Exception>> mapperOpt = mapperRegistry.findExact(ex);
     if (mapperOpt.isPresent()) {
       return handleMapped(ex, exchange, mapperOpt.get());
     }
@@ -106,11 +106,8 @@ public class ApiExceptionHandler {
     return ResponseEntity.status(code.status()).body(problem);
   }
 
-  @SuppressWarnings("unchecked")
-  private <E extends Throwable> ResponseEntity<ProblemDetail> handleMapped(
-      E ex, ServerWebExchange exchange, ApiExceptionMapper<? extends Throwable> rawMapper) {
-
-    ApiExceptionMapper<E> mapper = (ApiExceptionMapper<E>) rawMapper;
+  private ResponseEntity<ProblemDetail> handleMapped(
+      Exception ex, ServerWebExchange exchange, ApiExceptionMapper<Exception> mapper) {
 
     ApiProblemCode code = mapper.code();
     String detail = mapper.safeDetail(ex, exchange);
