@@ -1,6 +1,7 @@
 package com.nenkov.bar.domain.model.session;
 
 import com.nenkov.bar.domain.exceptions.IllegalDomainStateException;
+import com.nenkov.bar.domain.exceptions.OrderingNotAllowedException;
 import com.nenkov.bar.domain.model.writeoff.ItemWriteOff;
 import com.nenkov.bar.domain.model.writeoff.WriteOff;
 import com.nenkov.bar.domain.service.payment.SessionItemSnapshot;
@@ -110,6 +111,11 @@ public final class TableSession {
     Objects.requireNonNull(drafts, "drafts must not be null");
     if (drafts.isEmpty()) {
       throw new IllegalArgumentException("drafts must not be empty");
+    }
+
+    if (status == TableSessionStatus.CLOSED) {
+      throw new OrderingNotAllowedException(
+          "Ordering is not allowed when session is CLOSED. sessionId=" + id.value());
     }
 
     List<OrderItem> newItems = new ArrayList<>();

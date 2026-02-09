@@ -2,6 +2,7 @@ package com.nenkov.bar.application.ordering.handler;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -9,10 +10,12 @@ import com.nenkov.bar.application.ordering.model.AddOrderItemsInput;
 import com.nenkov.bar.application.ordering.model.AddOrderItemsResult;
 import com.nenkov.bar.application.session.exception.TableSessionNotFoundException;
 import com.nenkov.bar.application.session.repository.TableSessionRepository;
+import com.nenkov.bar.domain.exceptions.OrderingNotAllowedException;
 import com.nenkov.bar.domain.model.session.TableSession;
 import com.nenkov.bar.domain.model.session.TableSessionContents;
 import com.nenkov.bar.domain.model.session.TableSessionId;
 import com.nenkov.bar.domain.model.session.TableSessionStatus;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -80,5 +83,29 @@ final class AddOrderItemsHandlerTest {
         saved.orderItems().stream().map(oi -> oi.id().value().toString()).toList();
 
     assertThat(result.createdItemIds()).containsExactlyInAnyOrderElementsOf(savedIds);
+  }
+
+  @Test
+  void handle_closedSession_throws_and_doesNotSave() {
+    TableSessionRepository repository = Mockito.mock(TableSessionRepository.class);
+    AddOrderItemsHandler handler = new AddOrderItemsHandler(repository);
+
+    TableSessionId sessionId = TableSessionId.of("S-closed");
+    TableSession session =
+        new TableSession(
+            sessionId,
+            "EUR",
+            TableSessionContents.empty(),
+            TableSessionStatus.CLOSED,
+            Instant.parse("2026-02-09T10:00:00Z"));
+
+    when(repository.findById(sessionId)).thenReturn(Optional.of(session));
+
+    AddOrderItemsInput input =
+        new AddOrderItemsInput("S-closed", List.of(new AddOrderItemsInput.RequestedItem("P-1", 1)));
+
+    assertThrows(OrderingNotAllowedException.class, () -> handler.handle(input));
+
+    verify(repository, never()).save(Mockito.any());
   }
 }

@@ -3,6 +3,7 @@ package com.nenkov.bar.web.api.common;
 import com.nenkov.bar.application.session.exception.TableAlreadyHasOpenSessionException;
 import com.nenkov.bar.application.session.exception.TableSessionNotFoundException;
 import com.nenkov.bar.auth.InvalidCredentialsException;
+import com.nenkov.bar.domain.exceptions.OrderingNotAllowedException;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
@@ -45,7 +46,7 @@ import org.springframework.web.server.ServerWebExchange;
  *   <li>Exception messages are not leaked directly to clients unless explicitly safe
  * </ul>
  *
- * <p>All handlers are deterministic and side-effect free.
+ * <p>All handlers are deterministic and side-effect-free.
  */
 @RestControllerAdvice
 public class ApiExceptionHandler {
@@ -220,6 +221,34 @@ public class ApiExceptionHandler {
     problem.setTitle(code.title());
     problem.setType(code.typeUri());
     problem.setDetail("An unexpected error occurred.");
+
+    problem.setProperty(PROP_CODE, code.name());
+    problem.setProperty(PROP_TIMESTAMP, Instant.now().toString());
+    correlationId(exchange).ifPresent(id -> problem.setProperty(PROP_CORRELATION_ID, id));
+
+    return ResponseEntity.status(code.status()).body(problem);
+  }
+
+  /**
+   * Handles ordering conflicts when the session state does not allow adding new order items.
+   *
+   * <p>Produces {@code 409 Conflict}. The response detail is intentionally generic and does not
+   * leak internal exception messages.
+   *
+   * @param ignored ordering-not-allowed exception
+   * @param exchange current server exchange
+   * @return RFC7807 {@link ProblemDetail} response
+   */
+  @ExceptionHandler(OrderingNotAllowedException.class)
+  public ResponseEntity<ProblemDetail> handleOrderingNotAllowed(
+      OrderingNotAllowedException ignored, ServerWebExchange exchange) {
+
+    ApiProblemCode code = ApiProblemCode.ORDERING_CONFLICT;
+
+    ProblemDetail problem = ProblemDetail.forStatus(code.status());
+    problem.setTitle(code.title());
+    problem.setType(code.typeUri());
+    problem.setDetail("Ordering is not allowed for the current session state.");
 
     problem.setProperty(PROP_CODE, code.name());
     problem.setProperty(PROP_TIMESTAMP, Instant.now().toString());
