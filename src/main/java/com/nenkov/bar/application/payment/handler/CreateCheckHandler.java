@@ -1,5 +1,7 @@
 package com.nenkov.bar.application.payment.handler;
 
+import com.nenkov.bar.application.payment.exception.CheckCreationNotAllowedException;
+import com.nenkov.bar.application.payment.exception.InvalidPaymentSelectionException;
 import com.nenkov.bar.application.payment.model.CreateCheckInput;
 import com.nenkov.bar.application.payment.model.CreateCheckResult;
 import com.nenkov.bar.application.payment.repository.CheckRepository;
@@ -8,6 +10,7 @@ import com.nenkov.bar.application.session.repository.TableSessionRepository;
 import com.nenkov.bar.domain.model.payment.Check;
 import com.nenkov.bar.domain.model.payment.CheckQuote;
 import com.nenkov.bar.domain.model.session.TableSession;
+import com.nenkov.bar.domain.model.session.TableSessionStatus;
 import com.nenkov.bar.domain.service.payment.CheckAmountCalculator;
 import java.time.Instant;
 import java.util.Objects;
@@ -20,6 +23,7 @@ import java.util.Objects;
  *
  * <ul>
  *   <li>load session (repository)
+ *   <li>validate lifecycle constraints (application rule)
  *   <li>quote amount/allocation (domain service)
  *   <li>create Check (domain entity)
  *   <li>persist Check (repository)
@@ -52,13 +56,23 @@ public final class CreateCheckHandler {
             .findById(input.sessionId())
             .orElseThrow(() -> new TableSessionNotFoundException(input.sessionId()));
 
-    CheckQuote quote =
-        checkAmountCalculator.quote(
-            session.currency(),
-            session.payableItemsSnapshot(),
-            input.selections(),
-            session.itemWriteOffs(),
-            session.sessionWriteOffs());
+    if (session.status() == TableSessionStatus.CLOSED) {
+      throw new CheckCreationNotAllowedException(session.id());
+    }
+
+    CheckQuote quote;
+    try {
+      quote =
+          checkAmountCalculator.quote(
+              session.currency(),
+              session.payableItemsSnapshot(),
+              input.selections(),
+              session.itemWriteOffs(),
+              session.sessionWriteOffs());
+    } catch (IllegalArgumentException _) {
+      // Business-rule violation on a well-formed request (e.g. unknown itemId / over-selected qty).
+      throw new InvalidPaymentSelectionException(session.id());
+    }
 
     Check check =
         Check.createNew(session.id(), quote.checkAmount(), quote.paidItems(), Instant.now());

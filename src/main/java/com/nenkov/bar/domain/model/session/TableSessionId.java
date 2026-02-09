@@ -1,5 +1,7 @@
 package com.nenkov.bar.domain.model.session;
 
+import java.io.Serial;
+import java.io.Serializable;
 import java.util.Objects;
 
 /**
@@ -7,7 +9,9 @@ import java.util.Objects;
  *
  * <p>Represents identity only. No persistence, parsing, or formatting concerns belong here.
  */
-public final class TableSessionId {
+public final class TableSessionId implements Serializable {
+
+  @Serial private static final long serialVersionUID = 1L;
 
   private final String value;
 
