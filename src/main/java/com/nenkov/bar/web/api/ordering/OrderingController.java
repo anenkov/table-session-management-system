@@ -6,12 +6,12 @@ import com.nenkov.bar.application.ordering.service.OrderingService;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.MediaType;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Mono;
 
 /** Ordering HTTP API. */
 @RestController
@@ -24,18 +24,21 @@ public final class OrderingController {
     this.orderingService = orderingService;
   }
 
-  @PreAuthorize("isAuthenticated()")
   @PostMapping(path = "/{sessionId}/orders/items", consumes = MediaType.APPLICATION_JSON_VALUE)
-  public AddOrderItemsResponse addOrderItems(
+  public Mono<AddOrderItemsResponse> addOrderItems(
       @PathVariable String sessionId, @Valid @RequestBody AddOrderItemsRequest request) {
 
-    List<AddOrderItemsInput.RequestedItem> items =
-        request.items().stream()
-            .map(i -> new AddOrderItemsInput.RequestedItem(i.productId(), i.quantity()))
-            .toList();
+    return Mono.fromSupplier(
+        () -> {
+          List<AddOrderItemsInput.RequestedItem> items =
+              request.items().stream()
+                  .map(i -> new AddOrderItemsInput.RequestedItem(i.productId(), i.quantity()))
+                  .toList();
 
-    AddOrderItemsResult result = orderingService.addItems(new AddOrderItemsInput(sessionId, items));
+          AddOrderItemsResult result =
+              orderingService.addItems(new AddOrderItemsInput(sessionId, items));
 
-    return new AddOrderItemsResponse(result.sessionId(), result.createdItemIds());
+          return new AddOrderItemsResponse(result.sessionId(), result.createdItemIds());
+        });
   }
 }
