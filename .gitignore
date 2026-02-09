@@ -82,6 +82,12 @@ yarn-debug.log*
 yarn-error.log*
 
 ########################
+# Claude Code
+########################
+CLAUDE.md
+claude_context/
+
+########################
 # SDKMAN (just in case)
 ########################
 .sdkmanrc

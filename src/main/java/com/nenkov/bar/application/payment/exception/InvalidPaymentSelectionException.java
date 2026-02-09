@@ -7,8 +7,7 @@ import java.io.Serial;
  * Thrown when a well-formed check creation request violates business rules (e.g., invalid item id
  * or over-selected quantity).
  *
- * <p>This is mapped by the web layer to 422 Unprocessable Entity with a stable {@code
- * ApiProblemCode}.
+ * <p>This is mapped by the web layer to 400 Bad Request with a stable {@code ApiProblemCode}.
  */
 public final class InvalidPaymentSelectionException extends RuntimeException {
 
