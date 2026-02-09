@@ -163,7 +163,7 @@ class PaymentControllerWebTest {
   }
 
   @Test
-  void createCheck_invalidSelection_returns422ProblemDetail() {
+  void createCheck_invalidSelection_returns400ProblemDetail() {
     when(paymentService.createCheck(any(CreateCheckInput.class)))
         .thenThrow(new InvalidPaymentSelectionException(TableSessionId.of("S-1")));
 
@@ -177,7 +177,7 @@ class PaymentControllerWebTest {
                 List.of(new CreateCheckRequest.SelectionLine(UUID.randomUUID().toString(), 99))))
         .exchange()
         .expectStatus()
-        .isEqualTo(422)
+        .isEqualTo(400)
         .expectBody()
         .jsonPath("$.code")
         .isEqualTo(ApiProblemCode.PAYMENT_SELECTION_INVALID.name());
