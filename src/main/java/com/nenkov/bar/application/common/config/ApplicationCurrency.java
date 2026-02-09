@@ -1,5 +1,6 @@
 package com.nenkov.bar.application.common.config;
 
+import java.util.Locale;
 import java.util.Objects;
 
 /**
@@ -18,11 +19,15 @@ public record ApplicationCurrency(String code) {
    */
   public ApplicationCurrency {
     Objects.requireNonNull(code, "code must not be null");
-    if (code.isBlank()) {
+
+    String normalized = code.trim().toUpperCase(Locale.ROOT);
+    if (normalized.isBlank()) {
       throw new IllegalArgumentException("code must not be blank");
     }
-    if (code.length() != 3 || !code.equals(code.toUpperCase())) {
-      throw new IllegalArgumentException("code must be an uppercase ISO-4217 code");
+    if (!normalized.matches("[A-Z]{3}")) {
+      throw new IllegalArgumentException("code must be a valid ISO-4217 currency code (e.g., EUR)");
     }
+
+    code = normalized;
   }
 }

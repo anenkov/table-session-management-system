@@ -11,10 +11,12 @@ import com.nenkov.bar.domain.service.payment.SessionItemSnapshot;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
@@ -33,6 +35,7 @@ import reactor.core.publisher.Mono;
  * <p>Note: {@code tableId} is application-level only.
  */
 @RestController
+@RequestMapping(path = "/sessions", produces = MediaType.APPLICATION_JSON_VALUE)
 public class SessionController {
 
   private final TableSessionService tableSessionService;
@@ -47,7 +50,7 @@ public class SessionController {
    * <p>Conflicts are thrown by the application layer and mapped by {@code ApiExceptionHandler} to
    * RFC7807 Problem Details.
    */
-  @PostMapping("/sessions")
+  @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
   @ResponseStatus(HttpStatus.CREATED)
   public Mono<OpenSessionResponse> open(@Valid @RequestBody OpenSessionRequest request) {
     return Mono.fromSupplier(
@@ -64,7 +67,7 @@ public class SessionController {
    * TableSessionNotFoundException} which is mapped by {@code ApiExceptionHandler} to RFC7807
    * Problem Details (404).
    */
-  @GetMapping("/sessions/{sessionId}")
+  @GetMapping("/{sessionId}")
   public Mono<GetSessionResponse> getById(@PathVariable String sessionId) {
     return Mono.fromSupplier(
         () -> {

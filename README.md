@@ -1,24 +1,48 @@
 # Table Session Management System
 
-Backend system for managing table sessions (bills) in a hospitality venue (bar).
-Focus: session lifecycle, orders, partial payments, manager-approved write-offs,
-and production-like authentication.
+Backend system for managing **table sessions (tabs/bills)** in a hospitality venue (bar).
+Focus: session lifecycle, orders, partial payments, manager-approved write-offs, and production-like authentication.
 
-## Tech stack (planned)
+## Tech stack
 - Java 25
 - Spring Boot (WebFlux) + Project Reactor
 - PostgreSQL + R2DBC
 - Flyway migrations
 - JWT access-token authentication (Spring Security)
+- CI pipeline (GitHub Actions)
+- SonarCloud Quality Gate (coverage + code quality)
 
 ## Scope
 - Table sessions with OPEN / CLOSED lifecycle
-- Orders with manager-controlled cancellation
-- Partial payments and write-offs with approval
-- Role-based access control (waiter, bartender, manager, owner)
+- Orders and ordering constraints (e.g., ordering blocked when session is CLOSED)
+- Partial payments and write-offs with approval (application + domain groundwork exists)
+- Role-based access control (manager-only administrative actions planned for close endpoints)
 
 ## Status
-Work in progress.
+
+### Implemented so far
+- Auth API:
+  - `POST /auth/login`
+- RFC7807 Problem Details:
+  - Global `ApiExceptionHandler`
+  - Stable `ApiProblemCode`
+  - Correlation ID via `X-Request-Id`
+- Session API:
+  - `POST /sessions` (open session)
+  - `GET /sessions/{sessionId}` (get session projection)
+- Ordering API:
+  - `POST /sessions/{sessionId}/orders/items` (add order items)
+- CI:
+  - Build + tests on pull requests / main
+  - SonarCloud analysis with Quality Gate
+
+### Not implemented yet (planned next)
+- Payment API:
+  - Create check
+  - Record payment attempt (idempotent)
+- Session close API (manager-only)
+- Persistence (Phase 3.4): repositories are currently placeholder/stubbed for bootstrapping
+- CD / deployment (explicitly out of scope for now)
 
 ## How to run the project
 
@@ -39,6 +63,10 @@ Optional / local-only (if not using defaults in `application-local.yml`):
 - `DB_USERNAME`
 - `DB_PASSWORD`
 
+### Application configuration
+- `app.currency` must be a single ISO-4217 currency code (e.g. `EUR`).
+  - The project operates with **one configured currency** and does **not** support multi-currency.
+
 ### Local database setup (PostgreSQL 18)
 1. Start PostgreSQL 18 (Docker or local install)
 2. Create database and user
@@ -58,7 +86,6 @@ mvn test
 ```
 
 ### Coverage report (JaCoCo)
-
 After running tests:
 
-XML: target/site/jacoco/jacoco.xml
+- XML: `target/site/jacoco/jacoco.xml`

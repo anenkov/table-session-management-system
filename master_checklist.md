@@ -1,149 +1,135 @@
 ## MASTER CHECKLIST — Table Session Management System
 
-> **Purpose:** Track completed and upcoming work at phase level  
-> **Non-goal:** Capture detailed business rules, test inventories, or UI specifics
+This checklist is the **authoritative, living** phase tracker (0–7).  
+It is intentionally concise at phase/subtask level and avoids duplicating detailed domain rules that live in code/ADRs/tests.
+
+Legend: ✅ DONE · 🟨 IN PROGRESS · ⬜ PLANNED
 
 ---
 
-## 0. Phase 0 — Product Framing *(FROZEN)*
+## Phase 0 — Product Framing ✅ DONE / FROZEN
 
-- 0.1 Core product scope and flow defined
-- 0.2 Partial payment model defined
-- 0.3 Session lifecycle rules defined
-- 0.4 Manager-only administrative actions defined
-- 0.5 Phase explicitly frozen (no further scope changes)
-
-**Status:** ✅ DONE / FROZEN
+- Core flow and roles locked (customer tablets vs manager terminal)
+- Partial payment per items/quantities (delivered-only selection)
+- Close rules locked (block close on ACCEPTED/IN_PROGRESS or unpaid DELIVERED)
+- Multiple bills/checks per session supported
+- Write-off on remainder on close (administrative/manager flow)
 
 ---
 
-## 1. Phase 1 — Architecture & Design *(DONE)*
+## Phase 1 — Architecture & Design ✅ DONE
 
-- 1.1 Technology stack selected and locked
-- 1.2 Domain-first architecture defined
-- 1.3 Reactive infrastructure chosen
-- 1.4 Persistence approach defined
-- 1.5 Explicit non-goals documented
-
-**Status:** ✅ DONE
+- Architecture style and layering decisions
+- Tech stack decisions
+- API error strategy (eventually RFC7807)
+- Non-goals and scope constraints
 
 ---
 
-## 2. Phase 2 — Setup & Infrastructure *(DONE)*
+## Phase 2 — Setup & Infrastructure ✅ DONE
 
-- 2.1 Development environment set up
-- 2.2 Project skeleton created
-- 2.3 Profiles strategy implemented
-- 2.4 Database infrastructure configured
-- 2.5 Authentication & security foundation implemented
-- 2.6 CI pipeline with quality checks enabled
-- 2.7 Documentation for running the project added
-
-**Status:** ✅ DONE
+- Project skeleton, build, formatting, baseline docs
+- Local Postgres + migrations foundation
+- Auth foundation (JWT, WebFlux Security)
+- CI build + tests, SonarCloud integration, JaCoCo XML to Sonar
 
 ---
 
-## 3. Phase 3 — Core Business Logic
+## Phase 3 — Core Product Implementation
 
-### 3.1 Domain & Pricing Model *(DONE)*
+### 3.1 Domain Model & Pricing ✅ DONE
+- Money value object (immutable, strict invariants, no FX)
+- WriteOff / WriteOffReason modeling
+- Aggregate modeling decisions (TableSession as canonical tab)
+- Pricing & payment calculation responsibilities split
 
-- 3.1.1 Money value object designed and locked
-- 3.1.2 Single configured currency (EUR) via app configuration
-- 3.1.3 Write-off model designed
-- 3.1.4 Core aggregates and entities designed
-- 3.1.5 Allocation and pricing responsibilities separated
+### 3.1.3 Payment & Pricing Services Refactor ✅ DONE
+- PaymentCalculationContext snapshot
+- DefaultCheckAmountCalculator orchestrator
+- ItemWriteOffAllocation extracted
+- ProportionalAllocator + deterministic remainder distribution policy
+- WORK_CONTEXT MathContext rule locked
 
-**Status:** ✅ DONE
-
----
-
-### 3.1.3 Payment & Pricing Services Refactor *(DONE)*
-
-- 3.1.3.1 Payment calculation logic refactored
-- 3.1.3.2 Allocation logic extracted and made deterministic
-- 3.1.3.3 Rounding and remainder distribution rules locked
-- 3.1.3.4 Payment calculation orchestration clarified
-- 3.1.3.5 Codebase cleanup completed
-
-**Status:** ✅ DONE
+### 3.1.4 Domain Tests ✅ DONE
+- DiscountCalculator
+- ProportionalAllocator + RemainderDistributor
+- ItemWriteOffAllocation
+- DefaultCheckAmountCalculator
+- Coverage thresholds and test conventions
 
 ---
 
-### 3.1.4 Domain Tests *(DONE)*
-
-- 3.1.4.1 Unit tests for pricing, allocation, and payment services
-- 3.1.4.2 Edge cases fully covered
-- 3.1.4.3 Deterministic behavior verified
-
-**Status:** ✅ DONE
-
----
-
-### 3.2 Application Use Cases *(NOT STARTED)*
-
-- 3.2.1 Session lifecycle use cases
-- 3.2.2 Order handling use cases
-- 3.2.3 Partial payment use cases
-- 3.2.4 Closing and cancellation rules
-
-**Status:** ⬜ IN PROGRESS
+### 3.2 Application Use Cases ✅ DONE
+- 3.2.0 Application foundation (feature-first packages; boundaries; ArchUnit guardrails)
+- 3.2.1 Integration interfaces (repositories/gateways; interface-only boundaries)
+- 3.2.2 Application Use Cases — Implementation Phase ✅ DONE
+  - 3.2.2.1 Session Open & Get ✅ DONE
+  - 3.2.2.2 Ordering Add Order Items ✅ DONE
+  - 3.2.2.3 Payment Create Check ✅ DONE
+  - 3.2.2.4 Payment Record Payment Attempt (Idempotent) ✅ DONE
+  - 3.2.2.5 Session Close ✅ DONE
+  - 3.2.2.6 Coverage & Consolidation ✅ DONE
 
 ---
 
-### 3.3 API Layer *(NOT STARTED)*
-
-- 3.3.1 REST endpoints
-- 3.3.2 DTOs and validation
-- 3.3.3 Error model
-- 3.3.4 Security integration
-
-**Status:** ⬜ NOT STARTED
-
----
-
-### 3.4 Persistence & Integration *(NOT STARTED)*
-
-- 3.4.1 Domain-to-database mapping
-- 3.4.2 Business migrations
-- 3.4.3 Integration tests
-
-**Status:** ⬜ NOT STARTED
+### 3.3 API Layer 🟨 IN PROGRESS
+- 3.3.1 API Foundation & Conventions ✅ DONE
+  - RFC7807 Problem Details + ApiProblemCode
+  - Global ApiExceptionHandler (WebFlux)
+  - Validation semantics + correlationId propagation
+  - Spring Boot 4 web testing conventions
+- 3.3.2 Session API — Open & Get Session ✅ DONE
+- 3.3.3 Ordering API — Add Order Items ✅ DONE
+- 3.3.4 Payment API — Create Check ⬜ PLANNED
+- 3.3.5 Payment API — Record Payment Attempt (Idempotent) ⬜ PLANNED
+- 3.3.6 Session API — Close Session (Manager-Only) ⬜ PLANNED
+- 3.3.7 Global Error Handling & HTTP Semantics ⬜ PLANNED
+- 3.3.8 API Security Integration ⬜ PLANNED
+- 3.3.9 API Tests (Web Layer) ⬜ PLANNED (incremental per endpoint)
+- 3.3.10 OpenAPI / Swagger Generation ⬜ PLANNED
+- 3.3.x Review & Gap Check ⬜ PLANNED
 
 ---
 
-## 4. Phase 4 — UI *(NOT STARTED)*
-
-- 4.1 UI scope intentionally undecided
-- 4.2 UI complexity to be decided later
-
-**Status:** ⬜ NOT STARTED
-
----
-
-## 5. Phase 5 — Hardening *(NOT STARTED)*
-
-- 5.1 Operational configuration
-- 5.2 Dockerization
-- 5.3 Logging and monitoring
-
-**Status:** ⬜ NOT STARTED
+### 3.4 Persistence ⬜ PLANNED
+- 3.4.1 Persistence foundation (R2DBC + Flyway conventions)
+- 3.4.2 TableSession persistence (aggregate mapping; constraints)
+- 3.4.3 Ordering persistence
+- 3.4.4 Payment persistence (checks + attempts)
+- 3.4.5 Integration tests / testcontainers (if adopted)
 
 ---
 
-## 6. Phase 6 — Delivery *(NOT STARTED)*
-
-- 6.1 Architecture documentation
-- 6.2 API snapshot
-- 6.3 Demo scenario
-
-**Status:** ⬜ NOT STARTED
+### 3.2.7 Product Catalog Foundation ⬜ PLANNED
+- ProductId + MenuProduct model
+- Application boundary for catalog access
+- Enforce product existence/active state during ordering
+- Snapshot product name + unit price at order time
+- Persistence may be seeded or stubbed (manager CRUD optional/out of scope)
 
 ---
 
-## 7. CI / CD — Optional / Future
+## Phase 4 — UI ⬜ PLANNED
+- UI scope intentionally undecided (not forced minimal)
+- Manager vs customer UX to be defined later
 
-- 7.1 Branch protection rules
-- 7.2 Enforced quality gates
-- 7.3 Deployment strategy
+---
 
-**Status:** ⬜ OPTIONAL
+## Phase 5 — Hardening ⬜ PLANNED
+- Operational configuration + resilience
+- Logging/monitoring conventions
+- Dockerization
+
+---
+
+## Phase 6 — Delivery ⬜ PLANNED
+- Architecture documentation
+- Demo scenario + runbook
+- Release readiness checklist
+
+---
+
+## Phase 7 — CI/CD (CI DONE, CD PLANNED) 🟨 PARTIAL
+- CI pipeline (build + tests) ✅ DONE
+- SonarCloud Quality Gate ✅ DONE
+- CD / deployment strategy ⬜ PLANNED
