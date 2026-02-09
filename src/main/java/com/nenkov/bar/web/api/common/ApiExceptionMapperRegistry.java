@@ -43,10 +43,12 @@ public class ApiExceptionMapperRegistry {
     this.byType = Map.copyOf(map);
   }
 
-  public Optional<ApiExceptionMapper<? extends Throwable>> findExact(Throwable ex) {
+  @SuppressWarnings("unchecked")
+  public <E extends Throwable> Optional<ApiExceptionMapper<E>> findExact(E ex) {
     if (ex == null) {
       return Optional.empty();
     }
-    return Optional.ofNullable(byType.get(ex.getClass()));
+    // Safe: registry guarantees the mapper for ex.getClass() handles exactly that type.
+    return Optional.ofNullable((ApiExceptionMapper<E>) byType.get(ex.getClass()));
   }
 }
