@@ -86,8 +86,20 @@ yarn-error.log*
 ########################
 CLAUDE.md
 claude_context/
+.claude/
+
+########################
+# Codex
+########################
+AGENTS.md
+.codex/
 
 ########################
 # SDKMAN (just in case)
 ########################
 .sdkmanrc
+
+########################
+# AI tooling workspace (Codex + Claude local files)
+########################
+/ai/
