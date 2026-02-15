@@ -61,19 +61,17 @@ public final class PaymentController {
   @PostMapping(path = "/{sessionId}/checks", consumes = MediaType.APPLICATION_JSON_VALUE)
   @ResponseStatus(HttpStatus.CREATED)
   public Mono<CreateCheckResponse> createCheck(
-      @PathVariable String sessionId, @Valid @RequestBody CreateCheckRequest request) {
+      @PathVariable TableSessionId sessionId, @Valid @RequestBody CreateCheckRequest request) {
 
     return Mono.fromSupplier(
         () -> {
-          TableSessionId id = parseSessionId(sessionId);
-
           List<PaymentSelection> selections =
               request.selections().stream()
                   .map(s -> PaymentSelection.of(parseOrderItemId(s.itemId()), s.quantity()))
                   .toList();
 
           CreateCheckResult result =
-              paymentService.createCheck(new CreateCheckInput(id, selections));
+              paymentService.createCheck(new CreateCheckInput(sessionId, selections));
 
           return new CreateCheckResponse(
               result.sessionId().value(),
@@ -91,19 +89,17 @@ public final class PaymentController {
       path = "/{sessionId}/checks/{checkId}/attempts",
       consumes = MediaType.APPLICATION_JSON_VALUE)
   public Mono<RecordPaymentAttemptResponse> recordPaymentAttempt(
-      @PathVariable String sessionId,
-      @PathVariable String checkId,
+      @PathVariable TableSessionId sessionId,
+      @PathVariable CheckId checkId,
       @Valid @RequestBody RecordPaymentAttemptRequest request) {
 
     return Mono.fromSupplier(
         () -> {
-          TableSessionId id = parseSessionId(sessionId);
-          CheckId parsedCheckId = parseCheckId(checkId);
           PaymentRequestId requestId = parseRequestId(request.requestId());
 
           RecordPaymentAttemptResult result =
               paymentService.recordPaymentAttempt(
-                  new RecordPaymentAttemptInput(requestId, id, parsedCheckId));
+                  new RecordPaymentAttemptInput(requestId, sessionId, checkId));
 
           return new RecordPaymentAttemptResponse(
               result.requestId().value(),
@@ -111,18 +107,6 @@ public final class PaymentController {
               result.checkId().value().toString(),
               toAttempt(result.attemptResult()));
         });
-  }
-
-  /**
-   * Parses a session id from the path. Invalid values are treated as a client input error and
-   * mapped to {@code 400 Bad Request}.
-   */
-  private static TableSessionId parseSessionId(String raw) {
-    try {
-      return TableSessionId.of(raw);
-    } catch (RuntimeException _) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid sessionId.");
-    }
   }
 
   /**
@@ -137,14 +121,10 @@ public final class PaymentController {
     }
   }
 
-  private static CheckId parseCheckId(String raw) {
-    try {
-      return CheckId.of(UUID.fromString(raw));
-    } catch (RuntimeException _) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid checkId.");
-    }
-  }
-
+  /**
+   * Parses an idempotency request id from the request body. Invalid values are treated as a client
+   * input error and mapped to {@code 400 Bad Request}.
+   */
   private static PaymentRequestId parseRequestId(String raw) {
     try {
       return PaymentRequestId.of(raw);

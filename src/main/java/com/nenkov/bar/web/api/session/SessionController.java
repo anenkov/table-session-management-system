@@ -20,7 +20,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Mono;
 
 /**
@@ -69,11 +68,10 @@ public class SessionController {
    * Problem Details (404).
    */
   @GetMapping("/{sessionId}")
-  public Mono<GetSessionResponse> getById(@PathVariable String sessionId) {
+  public Mono<GetSessionResponse> getById(@PathVariable TableSessionId sessionId) {
     return Mono.fromSupplier(
         () -> {
-          TableSessionId id = parseSessionId(sessionId);
-          var result = tableSessionService.getById(new GetTableSessionInput(id));
+          var result = tableSessionService.getById(new GetTableSessionInput(sessionId));
 
           return new GetSessionResponse(
               result.sessionId().value(),
@@ -91,22 +89,13 @@ public class SessionController {
    * with explicit role checks in a dedicated security task.
    */
   @PostMapping("/{sessionId}/close")
-  public Mono<CloseSessionResponse> close(@PathVariable String sessionId) {
+  public Mono<CloseSessionResponse> close(@PathVariable TableSessionId sessionId) {
     return Mono.fromSupplier(
         () -> {
-          TableSessionId id = parseSessionId(sessionId);
-          var result = tableSessionService.close(new CloseTableSessionInput(id));
+          var result = tableSessionService.close(new CloseTableSessionInput(sessionId));
           return new CloseSessionResponse(
               result.sessionId().value(), result.status().name(), result.closedAt().toString());
         });
-  }
-
-  private static TableSessionId parseSessionId(String raw) {
-    try {
-      return TableSessionId.of(raw);
-    } catch (RuntimeException _) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid sessionId.");
-    }
   }
 
   private static List<GetSessionResponse.PayableItem> toPayableItems(
