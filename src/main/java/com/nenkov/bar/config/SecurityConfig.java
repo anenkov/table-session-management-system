@@ -29,6 +29,10 @@ public class SecurityConfig {
                     .pathMatchers("/actuator/health/**")
                     .permitAll()
 
+                    // allow OpenAPI/Swagger docs
+                    .pathMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html")
+                    .permitAll()
+
                     // everything else requires auth
                     .anyExchange()
                     .authenticated())
