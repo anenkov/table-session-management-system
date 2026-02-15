@@ -1,6 +1,7 @@
-package com.nenkov.bar.web.api.common;
+package com.nenkov.bar.web.api.error.mapping;
 
 import com.nenkov.bar.domain.exceptions.OrderingNotAllowedException;
+import com.nenkov.bar.web.api.error.model.ApiProblemCode;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 

@@ -1,8 +1,11 @@
-package com.nenkov.bar.web.api.common;
+package com.nenkov.bar.web.api.error;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.nenkov.bar.auth.InvalidCredentialsException;
+import com.nenkov.bar.web.api.error.mapping.ApiExceptionMapper;
+import com.nenkov.bar.web.api.error.mapping.ApiExceptionMapperRegistry;
+import com.nenkov.bar.web.api.error.model.ApiProblemCode;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.server.ServerWebExchange;

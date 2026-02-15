@@ -1,5 +1,6 @@
 package com.nenkov.bar.web.api.session;
 
+import com.nenkov.bar.application.session.model.CloseTableSessionInput;
 import com.nenkov.bar.application.session.model.GetTableSessionInput;
 import com.nenkov.bar.application.session.model.OpenTableSessionInput;
 import com.nenkov.bar.application.session.service.TableSessionService;
@@ -80,6 +81,23 @@ public class SessionController {
               toPayableItems(result.payableItems()),
               toItemWriteOffs(result.itemWriteOffs()),
               toSessionWriteOffs(result.sessionWriteOffs()));
+        });
+  }
+
+  /**
+   * Closes a session by id.
+   *
+   * <p>Manager-only enforcement is currently handled by authenticated access and will be hardened
+   * with explicit role checks in a dedicated security task.
+   */
+  @PostMapping("/{sessionId}/close")
+  public Mono<CloseSessionResponse> close(@PathVariable String sessionId) {
+    return Mono.fromSupplier(
+        () -> {
+          TableSessionId id = parseSessionId(sessionId);
+          var result = tableSessionService.close(new CloseTableSessionInput(id));
+          return new CloseSessionResponse(
+              result.sessionId().value(), result.status().name(), result.closedAt().toString());
         });
   }
 

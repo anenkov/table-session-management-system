@@ -1,7 +1,10 @@
-package com.nenkov.bar.web.api.common;
+package com.nenkov.bar.web.api.error;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.nenkov.bar.web.api.error.factory.ApiProblemFactory;
+import com.nenkov.bar.web.api.error.handler.ApiExceptionHandler;
+import com.nenkov.bar.web.api.error.mapping.ApiExceptionMapperRegistry;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.ProblemDetail;

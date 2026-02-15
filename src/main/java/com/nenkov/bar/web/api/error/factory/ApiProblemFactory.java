@@ -1,5 +1,7 @@
-package com.nenkov.bar.web.api.common;
+package com.nenkov.bar.web.api.error.factory;
 
+import com.nenkov.bar.web.api.error.model.ApiProblemCode;
+import com.nenkov.bar.web.api.error.model.FieldViolationDetail;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -26,11 +28,11 @@ import org.springframework.web.server.ServerWebExchange;
 @Component
 public class ApiProblemFactory {
 
-  static final String PROP_CODE = "code";
-  static final String PROP_TIMESTAMP = "timestamp";
-  static final String PROP_CORRELATION_ID = "correlationId";
-  static final String PROP_ERRORS = "errors";
-  static final String HEADER_REQUEST_ID = "X-Request-Id";
+  public static final String PROP_CODE = "code";
+  public static final String PROP_TIMESTAMP = "timestamp";
+  public static final String PROP_CORRELATION_ID = "correlationId";
+  public static final String PROP_ERRORS = "errors";
+  public static final String HEADER_REQUEST_ID = "X-Request-Id";
 
   public ProblemDetail problem(ApiProblemCode code, String detail, ServerWebExchange exchange) {
     ProblemDetail problem = ProblemDetail.forStatus(code.status());

@@ -1,5 +1,6 @@
-package com.nenkov.bar.web.api.common;
+package com.nenkov.bar.web.api.error.mapping;
 
+import com.nenkov.bar.web.api.error.model.ApiProblemCode;
 import org.springframework.web.server.ServerWebExchange;
 
 /**
