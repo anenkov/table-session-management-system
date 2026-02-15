@@ -19,30 +19,30 @@ Focus: session lifecycle, orders, partial payments, manager-approved write-offs,
 - Role-based access control (manager-only administrative actions planned for close endpoints)
 
 ## Status
+Last verified against code: 2026-02-15
 
 ### Implemented so far
-- Auth API:
-  - `POST /auth/login`
+- Auth API (login flow)
 - RFC7807 Problem Details:
   - Global `ApiExceptionHandler`
   - Stable `ApiProblemCode`
   - Correlation ID via `X-Request-Id`
-- Session API:
-  - `POST /sessions` (open session)
-  - `GET /sessions/{sessionId}` (get session projection)
-- Ordering API:
-  - `POST /sessions/{sessionId}/orders/items` (add order items)
+- Session API (open + get session)
+- Ordering API (add order items)
+- Payment API (create check)
 - CI:
   - Build + tests on pull requests / main
   - SonarCloud analysis with Quality Gate
 
 ### Not implemented yet (planned next)
-- Payment API:
-  - Create check
-  - Record payment attempt (idempotent)
+- Payment API: record payment attempt (idempotent)
 - Session close API (manager-only)
 - Persistence (Phase 3.4): repositories are currently placeholder/stubbed for bootstrapping
 - CD / deployment (explicitly out of scope for now)
+
+### API docs
+- Swagger UI (local): `/swagger-ui.html`
+- OpenAPI JSON: `/v3/api-docs`
 
 ## How to run the project
 
