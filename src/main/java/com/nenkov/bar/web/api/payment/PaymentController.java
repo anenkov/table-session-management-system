@@ -2,8 +2,13 @@ package com.nenkov.bar.web.api.payment;
 
 import com.nenkov.bar.application.payment.model.CreateCheckInput;
 import com.nenkov.bar.application.payment.model.CreateCheckResult;
+import com.nenkov.bar.application.payment.model.PaymentAttemptResult;
+import com.nenkov.bar.application.payment.model.PaymentRequestId;
+import com.nenkov.bar.application.payment.model.RecordPaymentAttemptInput;
+import com.nenkov.bar.application.payment.model.RecordPaymentAttemptResult;
 import com.nenkov.bar.application.payment.service.PaymentService;
 import com.nenkov.bar.domain.model.money.Money;
+import com.nenkov.bar.domain.model.payment.CheckId;
 import com.nenkov.bar.domain.model.payment.PaymentSelection;
 import com.nenkov.bar.domain.model.session.OrderItemId;
 import com.nenkov.bar.domain.model.session.TableSessionId;
@@ -29,7 +34,7 @@ import reactor.core.publisher.Mono;
  * parsing errors to {@code 400 Bad Request}.
  *
  * <p>Business rule failures are mapped via {@link
- * com.nenkov.bar.web.api.common.ApiExceptionHandler} to RFC7807 Problem Details.
+ * com.nenkov.bar.web.api.error.handler.ApiExceptionHandler} to RFC7807 Problem Details.
  */
 @RestController
 @RequestMapping(path = "/sessions", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -78,6 +83,37 @@ public final class PaymentController {
   }
 
   /**
+   * Records a payment attempt for an existing check using an idempotency request id.
+   *
+   * <p>HTTP: {@code 200 OK} on success.
+   */
+  @PostMapping(
+      path = "/{sessionId}/checks/{checkId}/attempts",
+      consumes = MediaType.APPLICATION_JSON_VALUE)
+  public Mono<RecordPaymentAttemptResponse> recordPaymentAttempt(
+      @PathVariable String sessionId,
+      @PathVariable String checkId,
+      @Valid @RequestBody RecordPaymentAttemptRequest request) {
+
+    return Mono.fromSupplier(
+        () -> {
+          TableSessionId id = parseSessionId(sessionId);
+          CheckId parsedCheckId = parseCheckId(checkId);
+          PaymentRequestId requestId = parseRequestId(request.requestId());
+
+          RecordPaymentAttemptResult result =
+              paymentService.recordPaymentAttempt(
+                  new RecordPaymentAttemptInput(requestId, id, parsedCheckId));
+
+          return new RecordPaymentAttemptResponse(
+              result.requestId().value(),
+              result.sessionId().value(),
+              result.checkId().value().toString(),
+              toAttempt(result.attemptResult()));
+        });
+  }
+
+  /**
    * Parses a session id from the path. Invalid values are treated as a client input error and
    * mapped to {@code 400 Bad Request}.
    */
@@ -99,6 +135,27 @@ public final class PaymentController {
     } catch (RuntimeException _) {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid itemId.");
     }
+  }
+
+  private static CheckId parseCheckId(String raw) {
+    try {
+      return CheckId.of(UUID.fromString(raw));
+    } catch (RuntimeException _) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid checkId.");
+    }
+  }
+
+  private static PaymentRequestId parseRequestId(String raw) {
+    try {
+      return PaymentRequestId.of(raw);
+    } catch (RuntimeException _) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid requestId.");
+    }
+  }
+
+  private static RecordPaymentAttemptResponse.Attempt toAttempt(PaymentAttemptResult result) {
+    return new RecordPaymentAttemptResponse.Attempt(
+        result.status().name(), result.providerReference(), result.failureReason().orElse(null));
   }
 
   /** Maps domain {@link Money} to API money representation. */

@@ -25,4 +25,4 @@ management:
 
 logging:
   level:
-    com.nenkov.bar.web.api.common.ApiExceptionHandler: OFF
+    com.nenkov.bar.web.api.error.handler.ApiExceptionHandler: OFF

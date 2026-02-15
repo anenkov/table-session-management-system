@@ -1,4 +1,4 @@
-package com.nenkov.bar.web.api.common;
+package com.nenkov.bar.web.api.error.mapping;
 
 import java.util.HashMap;
 import java.util.List;

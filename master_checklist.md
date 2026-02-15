@@ -82,11 +82,11 @@ Legend: ✅ DONE · 🟨 IN PROGRESS · ⬜ PLANNED
 - 3.3.2 Session API — Open & Get Session ✅ DONE
 - 3.3.3 Ordering API — Add Order Items ✅ DONE
 - 3.3.4 Payment API — Create Check ✅ DONE
-- 3.3.5 Payment API — Record Payment Attempt (Idempotent) ⬜ PLANNED
-- 3.3.6 Session API — Close Session (Manager-Only) ⬜ PLANNED
+- 3.3.5 Payment API — Record Payment Attempt (Idempotent) ✅ DONE
+- 3.3.6 Session API — Close Session (Manager-Only) ✅ DONE (role-hardening pending)
 - 3.3.7 Global Error Handling & HTTP Semantics ⬜ PLANNED
 - 3.3.8 API Security Integration ⬜ PLANNED
-- 3.3.9 API Tests (Web Layer) ⬜ PLANNED (incremental per endpoint)
+- 3.3.9 API Tests (Web Layer) 🟨 IN PROGRESS (incremental per endpoint)
 - 3.3.10 OpenAPI / Swagger Generation ✅ DONE
 - 3.3.x Review & Gap Check ⬜ PLANNED
 

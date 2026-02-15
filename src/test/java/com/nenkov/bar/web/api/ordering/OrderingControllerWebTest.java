@@ -10,7 +10,7 @@ import com.nenkov.bar.application.session.exception.TableSessionNotFoundExceptio
 import com.nenkov.bar.auth.jwt.JwtService;
 import com.nenkov.bar.domain.exceptions.OrderingNotAllowedException;
 import com.nenkov.bar.domain.model.session.TableSessionId;
-import com.nenkov.bar.web.api.common.ApiProblemCode;
+import com.nenkov.bar.web.api.error.model.ApiProblemCode;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

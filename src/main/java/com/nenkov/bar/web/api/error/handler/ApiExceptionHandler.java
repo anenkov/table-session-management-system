@@ -1,5 +1,10 @@
-package com.nenkov.bar.web.api.common;
+package com.nenkov.bar.web.api.error.handler;
 
+import com.nenkov.bar.web.api.error.factory.ApiProblemFactory;
+import com.nenkov.bar.web.api.error.mapping.ApiExceptionMapper;
+import com.nenkov.bar.web.api.error.mapping.ApiExceptionMapperRegistry;
+import com.nenkov.bar.web.api.error.model.ApiProblemCode;
+import com.nenkov.bar.web.api.error.model.FieldViolationDetail;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
@@ -51,16 +56,17 @@ public class ApiExceptionHandler {
     return ResponseEntity.status(code.status()).body(problem);
   }
 
-  @ExceptionHandler(com.nenkov.bar.auth.InvalidCredentialsException.class)
-  public ResponseEntity<ProblemDetail> handleInvalidCredentials(
-      com.nenkov.bar.auth.InvalidCredentialsException ex, ServerWebExchange exchange) {
-
-    return handleMappedOrFallback(ex, exchange);
-  }
-
   @ExceptionHandler(ResponseStatusException.class)
   public ResponseEntity<ProblemDetail> handleResponseStatus(
       ResponseStatusException ex, ServerWebExchange exchange) {
+    Optional<ApiExceptionMapper<ResponseStatusException>> mapperOpt = mapperRegistry.findExact(ex);
+    if (mapperOpt.isPresent()) {
+      ApiExceptionMapper<ResponseStatusException> mapper = mapperOpt.get();
+      ApiProblemCode code = mapper.code();
+      String detail = mapper.safeDetail(ex, exchange);
+      ProblemDetail problem = problemFactory.problem(code, detail, exchange);
+      return ResponseEntity.status(code.status()).body(problem);
+    }
 
     HttpStatus status = HttpStatus.valueOf(ex.getStatusCode().value());
 

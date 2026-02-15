@@ -5,6 +5,8 @@ import static org.mockito.Mockito.when;
 
 import com.nenkov.bar.application.session.exception.TableAlreadyHasOpenSessionException;
 import com.nenkov.bar.application.session.exception.TableSessionNotFoundException;
+import com.nenkov.bar.application.session.model.CloseTableSessionInput;
+import com.nenkov.bar.application.session.model.CloseTableSessionResult;
 import com.nenkov.bar.application.session.model.GetTableSessionInput;
 import com.nenkov.bar.application.session.model.GetTableSessionResult;
 import com.nenkov.bar.application.session.model.OpenTableSessionInput;
@@ -15,12 +17,14 @@ import com.nenkov.bar.auth.jwt.JwtService;
 import com.nenkov.bar.domain.model.money.Money;
 import com.nenkov.bar.domain.model.session.OrderItemId;
 import com.nenkov.bar.domain.model.session.TableSessionId;
+import com.nenkov.bar.domain.model.session.TableSessionStatus;
 import com.nenkov.bar.domain.model.writeoff.ItemWriteOff;
 import com.nenkov.bar.domain.model.writeoff.WriteOff;
 import com.nenkov.bar.domain.model.writeoff.WriteOffReason;
 import com.nenkov.bar.domain.service.payment.SessionItemSnapshot;
-import com.nenkov.bar.web.api.common.ApiProblemCode;
+import com.nenkov.bar.web.api.error.model.ApiProblemCode;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -335,6 +339,79 @@ class SessionControllerWebTest {
         .uri("/sessions")
         .contentType(MediaType.APPLICATION_JSON)
         .bodyValue(new OpenSessionRequest("T-1"))
+        .exchange()
+        .expectStatus()
+        .isUnauthorized();
+  }
+
+  @Test
+  void closeSession_returns200AndResponse() {
+    Instant closedAt = Instant.parse("2026-02-15T10:00:00Z");
+    when(tableSessionService.close(any(CloseTableSessionInput.class)))
+        .thenReturn(
+            new CloseTableSessionResult(
+                TableSessionId.of("s-1"), TableSessionStatus.CLOSED, closedAt));
+
+    webTestClient
+        .post()
+        .uri("/sessions/{id}/close", "s-1")
+        .header("Authorization", bearerToken)
+        .exchange()
+        .expectStatus()
+        .isOk()
+        .expectHeader()
+        .contentTypeCompatibleWith(MediaType.APPLICATION_JSON)
+        .expectBody()
+        .jsonPath("$.sessionId")
+        .isEqualTo("s-1")
+        .jsonPath("$.status")
+        .isEqualTo("CLOSED")
+        .jsonPath("$.closedAt")
+        .isEqualTo("2026-02-15T10:00:00Z");
+  }
+
+  @Test
+  void closeSession_invalidSessionId_returns400ProblemDetails() {
+    webTestClient
+        .post()
+        .uri("/sessions/{id}/close", " ")
+        .header("Authorization", bearerToken)
+        .exchange()
+        .expectStatus()
+        .isBadRequest()
+        .expectHeader()
+        .contentTypeCompatibleWith(MediaType.valueOf("application/problem+json"))
+        .expectBody()
+        .jsonPath("$.code")
+        .isEqualTo("HTTP_400")
+        .jsonPath("$.detail")
+        .isEqualTo("Invalid sessionId.");
+  }
+
+  @Test
+  void closeSession_notFound_returnsProblemDetails404() {
+    when(tableSessionService.close(any(CloseTableSessionInput.class)))
+        .thenThrow(new TableSessionNotFoundException(TableSessionId.of("s-1")));
+
+    webTestClient
+        .post()
+        .uri("/sessions/{id}/close", "s-1")
+        .header("Authorization", bearerToken)
+        .exchange()
+        .expectStatus()
+        .isNotFound()
+        .expectHeader()
+        .contentTypeCompatibleWith(MediaType.valueOf("application/problem+json"))
+        .expectBody()
+        .jsonPath("$.code")
+        .isEqualTo(ApiProblemCode.SESSION_NOT_FOUND.name());
+  }
+
+  @Test
+  void closeSession_withoutAuth_returns401() {
+    webTestClient
+        .post()
+        .uri("/sessions/{id}/close", "s-1")
         .exchange()
         .expectStatus()
         .isUnauthorized();

@@ -28,15 +28,15 @@ Last verified against code: 2026-02-15
   - Stable `ApiProblemCode`
   - Correlation ID via `X-Request-Id`
 - Session API (open + get session)
+- Session API (open + get + close)
 - Ordering API (add order items)
-- Payment API (create check)
+- Payment API (create check + record payment attempt idempotently)
 - CI:
   - Build + tests on pull requests / main
   - SonarCloud analysis with Quality Gate
 
 ### Not implemented yet (planned next)
-- Payment API: record payment attempt (idempotent)
-- Session close API (manager-only)
+- Manager-only role hardening for close endpoint (explicit role checks)
 - Persistence (Phase 3.4): repositories are currently placeholder/stubbed for bootstrapping
 - CD / deployment (explicitly out of scope for now)
 
@@ -57,11 +57,7 @@ The following environment variables must be provided (never commit secrets):
 - `JWT_SECRET` – HMAC secret for signing JWT access tokens
 
 Optional / local-only (if not using defaults in `application-local.yml`):
-- `DB_HOST`
-- `DB_PORT`
-- `DB_NAME`
-- `DB_USERNAME`
-- `DB_PASSWORD`
+- Override `spring.r2dbc.*` and `spring.flyway.*` in `application-local.yml`.
 
 ### Application configuration
 - `app.currency` must be a single ISO-4217 currency code (e.g. `EUR`).
@@ -69,7 +65,7 @@ Optional / local-only (if not using defaults in `application-local.yml`):
 
 ### Local database setup (PostgreSQL 18)
 1. Start PostgreSQL 18 (Docker or local install)
-2. Create database and user
+2. Create database and user (defaults in `application-local.yml`: `tsms` / `bar` / `bar`, host `localhost:5432`)
 3. Ensure the database is reachable from your machine
 
 Flyway migrations run automatically on startup when using the `local` profile.

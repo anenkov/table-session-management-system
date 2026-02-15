@@ -1,4 +1,4 @@
-package com.nenkov.bar.web.api.common;
+package com.nenkov.bar.web.api.error.model;
 
 import java.net.URI;
 import org.springframework.http.HttpStatus;
@@ -21,6 +21,9 @@ public enum ApiProblemCode {
   RESPONSE_STATUS(HttpStatus.BAD_REQUEST, "Request failed", "urn:problem:response-status"),
   ORDERING_CONFLICT(HttpStatus.CONFLICT, "Ordering conflict", "urn:problem:ordering-conflict"),
   PAYMENT_CONFLICT(HttpStatus.CONFLICT, "Payment conflict", "urn:problem:payment-conflict"),
+  PAYMENT_REQUEST_CONFLICT(
+      HttpStatus.CONFLICT, "Payment request conflict", "urn:problem:payment-request-conflict"),
+  CHECK_NOT_FOUND(HttpStatus.NOT_FOUND, "Check not found", "urn:problem:check-not-found"),
   PAYMENT_SELECTION_INVALID(
       HttpStatus.BAD_REQUEST, "Invalid payment selection", "urn:problem:payment-selection-invalid");
 
