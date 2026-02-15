@@ -73,7 +73,7 @@ public class ApiExceptionHandler {
     ProblemDetail problem = ProblemDetail.forStatus(status);
     problem.setTitle(status.getReasonPhrase());
     problem.setType(ApiProblemCode.RESPONSE_STATUS.typeUri());
-    problem.setDetail(Optional.ofNullable(ex.getReason()).orElse(status.getReasonPhrase()));
+    problem.setDetail(resolveResponseStatusDetail(ex, status));
 
     // Convention: generic HTTP_xxx code for ResponseStatusException
     problem.setProperty(ApiProblemFactory.PROP_CODE, "HTTP_" + status.value());
@@ -84,6 +84,33 @@ public class ApiExceptionHandler {
         .ifPresent(id -> problem.setProperty(ApiProblemFactory.PROP_CORRELATION_ID, id));
 
     return ResponseEntity.status(status).body(problem);
+  }
+
+  private static String resolveResponseStatusDetail(ResponseStatusException ex, HttpStatus status) {
+    String reason = ex.getReason();
+    if (reason != null && !reason.isBlank() && !"Type mismatch.".equals(reason)) {
+      return reason;
+    }
+
+    return findNestedResponseStatusReason(ex)
+        .orElse(
+            Optional.ofNullable(reason).filter(s -> !s.isBlank()).orElse(status.getReasonPhrase()));
+  }
+
+  private static Optional<String> findNestedResponseStatusReason(Throwable throwable) {
+    Throwable current = throwable == null ? null : throwable.getCause();
+    int depth = 0;
+    while (current != null && depth < 10) {
+      if (current instanceof ResponseStatusException nested) {
+        String reason = nested.getReason();
+        if (reason != null && !reason.isBlank()) {
+          return Optional.of(reason);
+        }
+      }
+      current = current.getCause();
+      depth++;
+    }
+    return Optional.empty();
   }
 
   /**
