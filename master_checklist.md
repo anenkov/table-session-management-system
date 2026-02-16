@@ -86,7 +86,7 @@ Legend: ✅ DONE · 🟨 IN PROGRESS · ⬜ PLANNED
 - 3.3.6 Session API — Close Session (Manager-Only) ✅ DONE (role-hardening pending)
 - 3.3.7 Global Error Handling & HTTP Semantics ⬜ PLANNED
 - 3.3.8 API Security Integration ⬜ PLANNED
-- 3.3.9 API Tests (Web Layer) 🟨 IN PROGRESS (incremental per endpoint)
+- 3.3.9 API Contract Regression Suite (Web Layer) ⬜ PLANNED (starts after 3.3.7 and 3.3.8)
 - 3.3.10 OpenAPI / Swagger Generation ✅ DONE
 - 3.3.x Review & Gap Check ⬜ PLANNED
 

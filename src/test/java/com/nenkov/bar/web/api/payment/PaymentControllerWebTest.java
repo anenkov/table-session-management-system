@@ -417,4 +417,23 @@ class PaymentControllerWebTest {
         .jsonPath("$.code")
         .isEqualTo(ApiProblemCode.PAYMENT_REQUEST_CONFLICT.name());
   }
+
+  @Test
+  void recordPaymentAttempt_invalidRequestId_returns400ProblemDetail() {
+    webTestClient
+        .post()
+        .uri(
+            "/sessions/{sessionId}/checks/{checkId}/attempts",
+            "S-1",
+            "11111111-1111-1111-1111-111111111111")
+        .header(HttpHeaders.AUTHORIZATION, bearerToken)
+        .contentType(MediaType.APPLICATION_JSON)
+        .bodyValue("{\"requestId\":\"   \"}")
+        .exchange()
+        .expectStatus()
+        .isBadRequest()
+        .expectBody()
+        .jsonPath("$.detail")
+        .isEqualTo("Request validation failed.");
+  }
 }

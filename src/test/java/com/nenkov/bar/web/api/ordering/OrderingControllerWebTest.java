@@ -217,4 +217,23 @@ class OrderingControllerWebTest {
         .expectStatus()
         .isUnauthorized();
   }
+
+  @Test
+  void addOrderItems_invalidSessionId_returns400ProblemDetails() {
+    AddOrderItemsRequest request =
+        new AddOrderItemsRequest(List.of(new AddOrderItemsRequest.AddOrderItemLine("P-1", 1)));
+
+    webTestClient
+        .post()
+        .uri("/sessions/{sessionId}/orders/items", " ")
+        .header("Authorization", bearerToken)
+        .contentType(MediaType.APPLICATION_JSON)
+        .bodyValue(request)
+        .exchange()
+        .expectStatus()
+        .isBadRequest()
+        .expectBody()
+        .jsonPath("$.detail")
+        .isEqualTo("Invalid sessionId.");
+  }
 }

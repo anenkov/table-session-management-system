@@ -3,6 +3,7 @@ package com.nenkov.bar.web.api.ordering;
 import com.nenkov.bar.application.ordering.model.AddOrderItemsInput;
 import com.nenkov.bar.application.ordering.model.AddOrderItemsResult;
 import com.nenkov.bar.application.ordering.service.OrderingService;
+import com.nenkov.bar.domain.model.session.TableSessionId;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.MediaType;
@@ -26,7 +27,7 @@ public final class OrderingController {
 
   @PostMapping(path = "/{sessionId}/orders/items", consumes = MediaType.APPLICATION_JSON_VALUE)
   public Mono<AddOrderItemsResponse> addOrderItems(
-      @PathVariable String sessionId, @Valid @RequestBody AddOrderItemsRequest request) {
+      @PathVariable TableSessionId sessionId, @Valid @RequestBody AddOrderItemsRequest request) {
 
     return Mono.fromSupplier(
         () -> {
@@ -36,7 +37,7 @@ public final class OrderingController {
                   .toList();
 
           AddOrderItemsResult result =
-              orderingService.addItems(new AddOrderItemsInput(sessionId, items));
+              orderingService.addItems(new AddOrderItemsInput(sessionId.value(), items));
 
           return new AddOrderItemsResponse(result.sessionId(), result.createdItemIds());
         });

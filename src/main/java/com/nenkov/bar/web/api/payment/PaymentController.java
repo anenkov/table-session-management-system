@@ -12,9 +12,11 @@ import com.nenkov.bar.domain.model.payment.CheckId;
 import com.nenkov.bar.domain.model.payment.PaymentSelection;
 import com.nenkov.bar.domain.model.session.OrderItemId;
 import com.nenkov.bar.domain.model.session.TableSessionId;
+import com.nenkov.bar.web.api.conversion.StringToOrderItemIdConverter;
+import com.nenkov.bar.web.api.conversion.StringToPaymentRequestIdConverter;
 import jakarta.validation.Valid;
 import java.util.List;
-import java.util.UUID;
+import java.util.Objects;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -23,7 +25,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Mono;
 
 /**
@@ -41,9 +42,19 @@ import reactor.core.publisher.Mono;
 public final class PaymentController {
 
   private final PaymentService paymentService;
+  private final StringToOrderItemIdConverter orderItemIdConverter;
+  private final StringToPaymentRequestIdConverter paymentRequestIdConverter;
 
-  public PaymentController(PaymentService paymentService) {
+  public PaymentController(
+      PaymentService paymentService,
+      StringToOrderItemIdConverter orderItemIdConverter,
+      StringToPaymentRequestIdConverter paymentRequestIdConverter) {
     this.paymentService = paymentService;
+    this.orderItemIdConverter =
+        Objects.requireNonNull(orderItemIdConverter, "orderItemIdConverter must not be null");
+    this.paymentRequestIdConverter =
+        Objects.requireNonNull(
+            paymentRequestIdConverter, "paymentRequestIdConverter must not be null");
   }
 
   /**
@@ -67,7 +78,9 @@ public final class PaymentController {
         () -> {
           List<PaymentSelection> selections =
               request.selections().stream()
-                  .map(s -> PaymentSelection.of(parseOrderItemId(s.itemId()), s.quantity()))
+                  .map(
+                      s ->
+                          PaymentSelection.of(orderItemIdConverter.convert(s.itemId()), s.quantity()))
                   .toList();
 
           CreateCheckResult result =
@@ -95,7 +108,7 @@ public final class PaymentController {
 
     return Mono.fromSupplier(
         () -> {
-          PaymentRequestId requestId = parseRequestId(request.requestId());
+          PaymentRequestId requestId = paymentRequestIdConverter.convert(request.requestId());
 
           RecordPaymentAttemptResult result =
               paymentService.recordPaymentAttempt(
@@ -107,30 +120,6 @@ public final class PaymentController {
               result.checkId().value().toString(),
               toAttempt(result.attemptResult()));
         });
-  }
-
-  /**
-   * Parses an order item id from the request body. Invalid values are treated as a client input
-   * error and mapped to {@code 400 Bad Request}.
-   */
-  private static OrderItemId parseOrderItemId(String raw) {
-    try {
-      return OrderItemId.of(UUID.fromString(raw));
-    } catch (RuntimeException _) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid itemId.");
-    }
-  }
-
-  /**
-   * Parses an idempotency request id from the request body. Invalid values are treated as a client
-   * input error and mapped to {@code 400 Bad Request}.
-   */
-  private static PaymentRequestId parseRequestId(String raw) {
-    try {
-      return PaymentRequestId.of(raw);
-    } catch (RuntimeException _) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid requestId.");
-    }
   }
 
   private static RecordPaymentAttemptResponse.Attempt toAttempt(PaymentAttemptResult result) {
