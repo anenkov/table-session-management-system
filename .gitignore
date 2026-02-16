@@ -103,3 +103,10 @@ AGENTS.md
 # AI tooling workspace (Codex + Claude local files)
 ########################
 /ai/
+
+########################
+# Local scripts
+########################
+!/scripts/local/
+/scripts/local/*
+!/scripts/local/.gitkeep
